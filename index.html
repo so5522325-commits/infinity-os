@@ -315,4 +315,73 @@
 
                 <div class="profile-wrapper">
                     <div class="profile-hero">
-              
+                        <div class="profile-avatar-frame" id="prof-initial">U</div>
+                        <div class="profile-meta">
+                            <h3 id="prof-name">User Session</h3>
+                            <p><span class="glow-dot"></span> <span style="color: #10b981; font-weight: 600;">Active Identity Core</span></p>
+                        </div>
+                    </div>
+
+                    <div class="info-matrix">
+                        <div class="info-card">
+                            <label>System Node Allocation</label>
+                            <span id="prof-node-id" style="color: #00f2fe; font-family: monospace;">NODE-UNKNOWN</span>
+                        </div>
+                        <div class="info-card">
+                            <label>Designation Parameter</label>
+                            <span>Digital Content Architect & Business Owner</span>
+                        </div>
+                        <div class="info-card">
+                            <label>Project Operational Core</label>
+                            <span>Faceless Media Branding (Mysterious Theme)</span>
+                        </div>
+                        <div class="info-card">
+                            <label>Connected Gateway Nodes</label>
+                            <div style="margin-top: 10px;">
+                                <div class="social-link-item">
+                                    <span style="font-size: 13px; color: #a5b4fc;">📱 Instagram Network</span>
+                                    <a href="#" class="action-link" style="font-size: 12px;">Linked →</a>
+                                </div>
+                                <div class="social-link-item">
+                                    <span style="font-size: 13px; color: #a5b4fc;">📺 YouTube Terminal</span>
+                                    <a href="#" class="action-link" style="font-size: 12px;">Linked →</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function toggleAuth(type) {
+            document.getElementById('login-error').style.display = 'none';
+            document.getElementById('register-error').style.display = 'none';
+            if(type === 'register') {
+                document.getElementById('card-login').style.display = 'none';
+                document.getElementById('card-register').style.display = 'block';
+            } else {
+                document.getElementById('card-login').style.display = 'block';
+                document.getElementById('card-register').style.display = 'none';
+            }
+        }
+
+        function switchPage(pageId, buttonId) {
+            document.querySelectorAll('.app-page').forEach(p => p.classList.remove('page-active'));
+            document.querySelectorAll('.nav-menu-list li').forEach(b => b.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('page-active');
+            document.getElementById(buttonId).classList.add('active');
+        }
+
+        function togglePass(fieldId) {
+            const input = document.getElementById(fieldId);
+            if (input.type === "password") {
+                input.type = "text";
+            } else {
+                input.type = "password";
+            }
+        }
+    </script>
+</body>
+</html>
