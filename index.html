@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinity Real OS v5.5</title>
+    <title>Infinity Real OS v6.5</title>
     <style>
         /* --- PREMIUM STYLING --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
@@ -59,7 +59,23 @@
         .video-desc { font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px; }
         .action-link { color: #00f2fe; text-decoration: none; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
         .action-link:hover { text-decoration: underline; }
+
+        /* PROFILE SECTION UI */
+        .profile-wrapper { background: #09090e; border-radius: 24px; border: 1px solid rgba(255,255,255,0.03); padding: 35px; margin-top: 20px; }
+        .profile-hero { display: flex; align-items: center; gap: 25px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 30px; margin-bottom: 30px; flex-wrap: wrap; }
+        .profile-avatar-frame { width: 90px; height: 90px; background: linear-gradient(135deg, #4f46e5, #00f2fe); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; color: #fff; font-weight: 700; box-shadow: 0 10px 25px rgba(0, 242, 254, 0.2); }
+        .profile-meta h3 { font-size: 24px; font-weight: 700; color: #fff; }
+        .profile-meta p { color: #6b7280; font-size: 14px; margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+        .info-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .info-card { background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); padding: 20px; border-radius: 16px; }
+        .info-card label { color: #6b7280; font-size: 11px; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 6px; }
+        .info-card span { color: #e5e7eb; font-size: 15px; font-weight: 500; }
+        .social-link-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .social-link-item:last-child { border-bottom: none; }
     </style>
+
+    <!-- SECURE CRYPTO ENGINE -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -97,15 +113,18 @@
                     errorDiv.innerText = "Yeh username pehle se maujood hai!";
                     errorDiv.style.display = 'block';
                 } else {
+                    // Password Encryption Node (SHA-256 Hashing)
+                    const encryptedPassword = CryptoJS.SHA256(pass).toString();
+
                     await set(ref(db, 'users/' + cleanUser), {
                         username: user,
-                        password: pass
+                        password: encryptedPassword
                     });
-                    alert('Account Google Cloud Database me successfully save ho gaya! Ab login karein.');
+                    alert('Account Secure Encrypted Node me successfully save ho gaya! Ab login karein.');
                     toggleAuth('login');
                 }
             } catch (error) {
-                errorDiv.innerText = "Database Error: Rules check karein.";
+                errorDiv.innerText = "Database Error: Connection failed.";
                 errorDiv.style.display = 'block';
             }
         };
@@ -123,12 +142,20 @@
                 const dbRef = ref(db);
                 const snapshot = await get(child(dbRef, `users/${cleanUser}`));
 
-                if (snapshot.exists() && snapshot.val().password === pass) {
+                // Input password ko bhi encrypt karke database hash se match karein
+                const hashedInputPassword = CryptoJS.SHA256(pass).toString();
+
+                if (snapshot.exists() && snapshot.val().password === hashedInputPassword) {
                     document.getElementById('auth-screen').style.display = 'none';
                     document.getElementById('home-screen').style.display = 'grid';
                     document.getElementById('live-greeting').innerText = `Hello, ${user}!`;
                     document.getElementById('sys-profile-tag').innerText = `@${user.toLowerCase().replace(/\s+/g, '')}`;
                     
+                    // Profile fields sync
+                    document.getElementById('prof-name').innerText = user;
+                    document.getElementById('prof-node-id').innerText = `NODE-${cleanUser.toUpperCase()}`;
+                    document.getElementById('prof-initial').innerText = user.charAt(0).toUpperCase();
+
                     startRealTimeMetrics();
                 } else {
                     errorDiv.innerText = "Galat Username ya Password!";
@@ -197,11 +224,12 @@
     <div id="home-screen">
         <nav class="premium-sidebar">
             <div>
-                <div class="brand-signature">INFINITY.OS v5.5</div>
+                <div class="brand-signature">INFINITY.OS v6.5</div>
                 <ul class="nav-menu-list">
                     <li id="btn-console" class="active" onclick="switchPage('console', 'btn-console')">◈ Cloud Console</li>
                     <li id="btn-creator" onclick="switchPage('creator', 'btn-creator')">📱 Creator Node</li>
                     <li id="btn-matrix" onclick="switchPage('matrix', 'btn-matrix')">📈 Analytics Node</li>
+                    <li id="btn-profile" onclick="switchPage('profile', 'btn-profile')">👤 User Profile</li>
                 </ul>
             </div>
             <div><div class="logout-action" onclick="location.reload()">🔒 Purge Session</div></div>
@@ -216,6 +244,7 @@
                 <div class="avatar-badge"><span id="sys-profile-tag">@Guest</span></div>
             </header>
 
+            <!-- LIVE CONSOLE -->
             <div id="page-console" class="app-page page-active">
                 <div class="matrix-grid">
                     <div class="matrix-box" style="border-left:4px solid #10b981;">
@@ -231,6 +260,7 @@
                 </div>
             </div>
 
+            <!-- CREATOR NODE -->
             <div id="page-creator" class="app-page">
                 <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">Digital Content Portfolio</h2>
                 <p style="color: #6b7280; font-size: 14px; margin-bottom: 25px;">Apne banaye hue funny aur sad status video ka link aur tracking portal yahan setup karein.</p>
@@ -251,12 +281,57 @@
                 </div>
             </div>
 
+            <!-- ANALYTICS NODE -->
             <div id="page-matrix" class="app-page">
                 <div class="matrix-grid">
                     <div class="matrix-box" style="border-left: 4px solid #4f46e5;">
                         <div style="color: #6b7280; font-size:12px; text-transform:uppercase;">Cloud Data Streams</div>
                         <div id="data-stream-counter" style="font-size:32px; font-weight:800; margin-top:10px; color:#fff;">482.9K</div>
                         <div style="color: #10b981; font-size: 11px; margin-top: 5px;">↑ Live Syncing Streams...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- USER PROFILE NODE PAGE -->
+            <div id="page-profile" class="app-page">
+                <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">Identity Management Node</h2>
+                <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">Authenticated developer credentials aur profile branding control parameters.</p>
+
+                <div class="profile-wrapper">
+                    <div class="profile-hero">
+                        <div class="profile-avatar-frame" id="prof-initial">U</div>
+                        <div class="profile-meta">
+                            <h3 id="prof-name">User Session</h3>
+                            <p><span class="glow-dot"></span> <span style="color: #10b981; font-weight: 600;">Active Identity Core</span></p>
+                        </div>
+                    </div>
+
+                    <div class="info-matrix">
+                        <div class="info-card">
+                            <label>System Node Allocation</label>
+                            <span id="prof-node-id" style="color: #00f2fe; font-family: monospace;">NODE-UNKNOWN</span>
+                        </div>
+                        <div class="info-card">
+                            <label>Designation Parameter</label>
+                            <span>Digital Content Architect & Business Owner</span>
+                        </div>
+                        <div class="info-card">
+                            <label>Project Operational Core</label>
+                            <span>Faceless Media Branding (Mysterious Theme)</span>
+                        </div>
+                        <div class="info-card">
+                            <label>Connected Gateway Nodes</label>
+                            <div style="margin-top: 10px;">
+                                <div class="social-link-item">
+                                    <span style="font-size: 13px; color: #a5b4fc;">📱 Instagram Network</span>
+                                    <a href="#" class="action-link" style="font-size: 12px;">Linked →</a>
+                                </div>
+                                <div class="social-link-item">
+                                    <span style="font-size: 13px; color: #a5b4fc;">📺 YouTube Terminal</span>
+                                    <a href="#" class="action-link" style="font-size: 12px;">Linked →</a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -289,9 +364,8 @@
                 input.type = "text";
             } else {
                 input.type = "password";
-                }
+            }
         }
     </script>
 </body>
-    </html>
-    
+</html>
