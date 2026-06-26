@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinity OS | Advanced</title>
+    <title>Infinity OS | Masterpiece</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -50,8 +50,45 @@
             const container = document.getElementById('results-container');
             container.innerHTML = "<h3>Users:</h3>";
             allUsers.filter(u => u.username.toLowerCase().includes(query)).forEach(u => {
-                container.innerHTML += `<div style="background:#2d3436; padding:10px; margin:5px; border-radius:8px;">User: ${u.username}</div>`;
+                container.innerHTML += `<div onclick="viewProfile('${u.username}')" style="background:#2d3436; padding:10px; margin:5px; border-radius:8px; cursor:pointer;">User: ${u.username}</div>`;
             });
+        };
+
+        window.viewProfile = (username) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('profile-page').classList.add('active');
+            document.getElementById('profile-title').innerText = "Profile: " + username;
+            const btn = document.getElementById('profile-follow-btn');
+            btn.innerText = JSON.parse(localStorage.getItem('my_following') || '[]').includes(username) ? "Following" : "Follow";
+        };
+
+        window.toggleProfileFollow = () => {
+            let following = JSON.parse(localStorage.getItem('my_following') || '[]');
+            const username = document.getElementById('profile-title').innerText.replace("Profile: ", "");
+            const btn = document.getElementById('profile-follow-btn');
+            if (following.includes(username)) {
+                following = following.filter(u => u !== username);
+                btn.innerText = "Follow";
+            } else {
+                following.push(username);
+                btn.innerText = "Following";
+            }
+            localStorage.setItem('my_following', JSON.stringify(following));
+            updateCounts();
+        };
+
+        window.updateDP = () => {
+            const url = document.getElementById('dp-url-input').value;
+            if(url.trim() !== "") {
+                localStorage.setItem('my_dp', url);
+                document.getElementById('user-dp').src = url;
+            }
+        };
+
+        window.updateCounts = () => {
+            const following = JSON.parse(localStorage.getItem('my_following') || '[]');
+            document.getElementById('following-count').innerText = following.length;
+            document.getElementById('followers-count').innerText = "0"; 
         };
 
         window.login = function() {
@@ -71,49 +108,55 @@
         .navbar { position: fixed; bottom: 0; width: 100%; height: 70px; background: #09090e; display: none; justify-content: space-around; align-items: center; border-top: 1px solid #333; z-index: 1000; }
         .nav-btn { background: none; border: none; color: #6b7280; font-weight: 600; cursor: pointer; }
         .nav-btn.active-nav { color: #00f2fe; }
-
         .reel-container { height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; }
-        .reel-item { height: 100%; scroll-snap-align: start; position: relative; display: flex; align-items: center; justify-content: center; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        .ui-layer { position: absolute; bottom: 20px; width: 100%; padding: 20px; box-sizing: border-box; background: linear-gradient(transparent, rgba(0,0,0,0.8)); }
-        .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .follow-btn { background: transparent; border: 1px solid white; color: white; padding: 5px 12px; border-radius: 5px; cursor: pointer; }
-        .side-bar { position: absolute; right: 10px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; align-items: center; }
-        .action-item { cursor: pointer; text-align: center; font-size: 24px; }
-        .liked { color: red; }
     </style>
 </head>
 <body>
-
     <div id="top-header"><span style="font-weight:bold; color:#00f2fe;">INFINITY OS</span></div>
 
     <div id="login-page" class="page" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
         <input type="text" id="username" placeholder="Username" style="padding:15px; border-radius:10px; width:250px; margin-bottom:10px; border:none;">
-        <input type="password" placeholder="Password" style="padding:15px; border-radius:10px; width:250px; margin-bottom:15px; border:none;">
         <button onclick="login()" style="padding:15px 40px; background:#4f46e5; border:none; color:white; border-radius:10px;">LOGIN</button>
     </div>
 
     <div id="feed-page" class="page" style="text-align:center;">
-        <input type="text" id="search-input" placeholder="Type here..." style="width:80%; padding:10px; margin-bottom:10px; border-radius:5px; border:none;">
+        <input type="text" id="search-input" placeholder="Search..." style="width:80%; padding:10px; margin-bottom:10px; border-radius:5px; border:none;">
         <br>
         <button onclick="searchPosts()" style="padding:10px; background:#00f2fe; border:none; border-radius:5px;">Search Posts</button>
         <button onclick="searchUsers()" style="padding:10px; background:#55efc4; border:none; border-radius:5px;">Search Users</button>
-        <hr style="margin:20px;">
+        <hr>
         <input type="text" id="post-input" placeholder="What's on your mind?" style="width:60%; padding:10px; border-radius:5px; border:none;">
         <button onclick="sendPost()" style="padding:10px; background:#74b9ff; border:none; border-radius:5px;">Post</button>
         <div id="results-container" style="margin-top:20px;"></div>
     </div>
 
-    <div id="reel-page" class="page">
-        <div class="reel-container" id="reelBox"></div>
-    </div>
+    <div id="reel-page" class="page"><div class="reel-container" id="reelBox"></div></div>
 
-    <div id="game-page" class="page"><h3>Battle Arena</h3></div>
-    <div id="profile-page" class="page" style="text-align:center;">
-        <h3>Profile</h3>
-        <p><strong>Following:</strong> <span id="following-list"></span></p>
-        <button onclick="logout()" style="padding:8px 15px; background:#ff4757; border:none; color:white; border-radius:5px;">Logout</button>
-        <p id="user-display"></p>
+    <div id="game-page" class="page" style="text-align:center;"><h3>Battle Arena</h3></div>
+
+    <div id="profile-page" class="page" style="text-align:center; padding: 20px;">
+        <div style="margin-bottom: 20px;">
+            <img id="user-dp" src="https://via.placeholder.com/100" style="width:120px; height:120px; border-radius:50%; border:3px solid #00f2fe; object-fit: cover;">
+            <h3 id="profile-title" style="margin: 10px 0 5px 0;">Profile</h3>
+            <p id="user-display" style="color: #6b7280; font-size: 14px;"></p>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 20px;">
+            <div style="text-align: center;">
+                <div id="followers-count" style="font-size: 18px; font-weight: bold;">0</div>
+                <div style="font-size: 12px; color: #6b7280;">Followers</div>
+            </div>
+            <div style="text-align: center;">
+                <div id="following-count" style="font-size: 18px; font-weight: bold;">0</div>
+                <div style="font-size: 12px; color: #6b7280;">Following</div>
+            </div>
+        </div>
+        <button id="profile-follow-btn" onclick="toggleProfileFollow()" style="padding:10px 40px; background:#00f2fe; color:black; border:none; border-radius:25px; font-weight:bold; margin-bottom: 15px;">Follow</button>
+        <div style="background:#09090e; padding:15px; border-radius:15px; margin: 10px auto; width: 80%;">
+            <input type="text" id="dp-url-input" placeholder="Image URL" style="width: 70%; padding: 8px; border-radius: 8px; border: none; background: #1a1a1a; color: white;">
+            <button onclick="updateDP()" style="padding:8px 10px; background:#55efc4; border-radius: 8px;">Set</button>
+        </div>
+        <button onclick="localStorage.clear(); location.reload();" style="margin-top:20px; padding:8px 20px; background:transparent; border:1px solid #ff4757; color:#ff4757; border-radius:10px;">Logout</button>
     </div>
 
     <div class="navbar" id="nav-bar">
@@ -124,72 +167,24 @@
     </div>
 
     <script>
-        let following = JSON.parse(localStorage.getItem('my_following')) || [];
-
-        const videos = [
-            { user: "Saddam_Creator", src: "https://www.w3schools.com/html/mov_bbb.mp4" },
-            { user: "Tech_Guru", src: "https://www.w3schools.com/html/movie.mp4" }
-        ];
-
-        const reelBox = document.getElementById('reelBox');
-        videos.forEach(v => {
-            let isFollowed = following.includes(v.user);
-            reelBox.innerHTML += `
-                <div class="reel-item">
-                    <video src="${v.src}" loop muted playsinline></video>
-                    <div class="ui-layer">
-                        <div class="user-info">
-                            <strong>${v.user}</strong>
-                            <button class="follow-btn" onclick="toggleFollow('${v.user}', this)">${isFollowed ? 'Following' : 'Follow'}</button>
-                        </div>
-                    </div>
-                    <div class="side-bar">
-                        <div class="action-item" onclick="this.classList.toggle('liked'); this.innerHTML=this.classList.contains('liked')?'❤️':'🤍'">🤍</div>
-                        <div class="action-item" onclick="alert('Comment!')">💬</div>
-                    </div>
-                </div>
-            `;
-        });
-
-        function toggleFollow(user, btn) {
-            if (following.includes(user)) {
-                following = following.filter(u => u !== user);
-                btn.innerText = "Follow";
-            } else {
-                following.push(user);
-                btn.innerText = "Following";
-            }
-            localStorage.setItem('my_following', JSON.stringify(following));
-            document.getElementById('following-list').innerText = following.join(", ");
-        }
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(e => {
-                const v = e.target.querySelector('video');
-                e.isIntersecting ? v.play() : v.pause();
-            });
-        }, { threshold: 0.7 });
-        
         window.onload = () => {
             if (localStorage.getItem('saddam_user')) {
                 document.getElementById('login-page').style.display = 'none';
                 document.getElementById('nav-bar').style.display = 'flex';
                 document.getElementById('top-header').style.display = 'flex';
+                document.getElementById('user-dp').src = localStorage.getItem('my_dp') || "https://via.placeholder.com/100";
                 document.getElementById('user-display').innerText = "User: " + localStorage.getItem('saddam_user');
-                document.getElementById('following-list').innerText = following.join(", ");
-                document.querySelectorAll('.reel-item').forEach(i => observer.observe(i));
+                updateCounts();
             } else {
                 document.getElementById('login-page').style.display = 'flex';
             }
         };
-
         function navigate(id, btn) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
-            btn.classList.add('active-nav');
+            if(btn) btn.classList.add('active-nav');
         }
-        function logout() { localStorage.clear(); location.reload(); }
     </script>
 </body>
 </html>
