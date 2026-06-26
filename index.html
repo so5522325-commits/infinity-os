@@ -3,55 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinity OS | Social & Battle</title>
-    <style>
-        body { margin: 0; background: #050508; color: #fff; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-        .page { display: none; height: calc(100vh - 80px); padding: 20px; overflow-y: auto; }
-        .active { display: block !important; }
-        
-        /* Premium Navigation Bar */
-        .navbar { position: fixed; bottom: 0; width: 100%; height: 70px; background: #09090e; display: none; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); z-index: 1000; }
-        .nav-btn { background: none; border: none; color: #6b7280; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        .nav-btn.active-nav { color: #00f2fe; }
+    <title>Infinity OS | Advanced Search</title>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        /* Login Styling */
-        .auth-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        .input-field { padding: 14px; border-radius: 12px; border: 1px solid #333; background: #111; color: #fff; margin-bottom: 20px; width: 280px; outline: none; }
-        .login-btn { background: linear-gradient(135deg, #4f46e5, #00f2fe); padding: 15px 40px; border-radius: 12px; border: none; color: white; font-weight: bold; cursor: pointer; }
+        const firebaseConfig = {
+            apiKey: "AIzaSyC32qR8fW2aNa8ubI91CY70oOII9HUFPIQ",
+            authDomain: "infinityos-1cf63.firebaseapp.com",
+            databaseURL: "https://infinityos-1cf63-default-rtdb.firebaseio.com",
+            projectId: "infinityos-1cf63",
+            storageBucket: "infinityos-1cf63.firebasestorage.app",
+            messagingSenderId: "1027693906170",
+            appId: "1:1027693906170:web:6b20c3ec3a54c9e1c0e143"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let allPosts = [];
+        let allUsers = [];
+
+        // Posts aur Users fetch karna
+        onValue(ref(db, 'posts/'), (snapshot) => {
+            allPosts = [];
+            snapshot.forEach((child) => { allPosts.push(child.val()); });
+        });
+
+        onValue(ref(db, 'users/'), (snapshot) => {
+            allUsers = [];
+            snapshot.forEach((child) => { allUsers.push(child.val()); });
+        });
+
+        window.sendPost = () => {
+            const postText = document.getElementById('post-input').value;
+            const user = localStorage.getItem('saddam_user');
+            if(postText.trim() !== "") {
+                push(ref(db, 'posts/'), { username: user, text: postText, time: new Date().toLocaleTimeString() });
+                document.getElementById('post-input').value = "";
+            }
+        };
+
+        // Post Search
+        window.searchPosts = () => {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const container = document.getElementById('results-container');
+            container.innerHTML = "<h3>Posts:</h3>";
+            allPosts.filter(p => p.text.toLowerCase().includes(query)).forEach(p => {
+                container.innerHTML += `<div style="background:#1a1a1a; padding:10px; margin:5px; border-radius:8px;"><b>${p.username}</b>: ${p.text}</div>`;
+            });
+        };
+
+        // User Search
+        window.searchUsers = () => {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const container = document.getElementById('results-container');
+            container.innerHTML = "<h3>Users:</h3>";
+            allUsers.filter(u => u.username.toLowerCase().includes(query)).forEach(u => {
+                container.innerHTML += `<div style="background:#2d3436; padding:10px; margin:5px; border-radius:8px;">User: ${u.username}</div>`;
+            });
+        };
+
+        window.login = function() {
+            const user = document.getElementById('username').value;
+            if(user.trim() !== "") {
+                localStorage.setItem('saddam_user', user);
+                location.reload();
+            }
+        };
+    </script>
+
+    <style>
+        body { margin: 0; background: #050508; color: #fff; font-family: sans-serif; overflow: hidden; }
+        .page { display: none; height: calc(100vh - 130px); padding-top: 60px; overflow-y: auto; }
+        .active { display: block !important; }
+        #top-header { position: fixed; top: 0; width: 100%; height: 50px; background: #09090e; display: none; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 2000; }
+        .navbar { position: fixed; bottom: 0; width: 100%; height: 70px; background: #09090e; display: none; justify-content: space-around; align-items: center; border-top: 1px solid #333; z-index: 1000; }
+        .nav-btn { background: none; border: none; color: #6b7280; font-weight: 600; cursor: pointer; }
+        .nav-btn.active-nav { color: #00f2fe; }
     </style>
 </head>
 <body>
 
-    <!-- LOGIN SCREEN -->
-    <div id="login-page" class="page active">
-        <div class="auth-container">
-            <h2 style="color:#00f2fe; margin-bottom:20px;">INFINITY OS</h2>
-            <input type="text" id="username" class="input-field" placeholder="Enter Username">
-            <button class="login-btn" onclick="login()">LOGIN SESSION</button>
-        </div>
+    <div id="top-header"><span style="font-weight:bold; color:#00f2fe;">INFINITY OS</span></div>
+
+    <div id="login-page" class="page" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
+        <input type="text" id="username" placeholder="Username" style="padding:15px; border-radius:10px; width:250px; margin-bottom:10px; border:none;">
+        <input type="password" placeholder="Password" style="padding:15px; border-radius:10px; width:250px; margin-bottom:15px; border:none;">
+        <button onclick="login()" style="padding:15px 40px; background:#4f46e5; border:none; color:white; border-radius:10px;">LOGIN</button>
     </div>
 
-    <!-- FEED -->
-    <div id="feed-page" class="page"><h3>Latest Posts</h3><p>Data streaming from nodes...</p></div>
-
-    <!-- REELS -->
-    <div id="reel-page" class="page"><h3>Reels</h3><p>Video Feed loading...</p></div>
-
-    <!-- GAME -->
-    <div id="game-page" class="page">
-        <h3>Battle Arena</h3>
-        <div id="game-container" style="width:300px; height:200px; border:1px solid #33ff33; margin:20px auto; position:relative;">
-            <div id="player" style="width:30px; height:30px; background:#00f2fe; position:absolute; bottom:0; left:0;"></div>
-        </div>
+    <div id="feed-page" class="page" style="text-align:center;">
+        <input type="text" id="search-input" placeholder="Type here..." style="width:80%; padding:10px; margin-bottom:10px; border-radius:5px; border:none;">
+        <br>
+        <button onclick="searchPosts()" style="padding:10px; background:#00f2fe; border:none; border-radius:5px;">Search Posts</button>
+        <button onclick="searchUsers()" style="padding:10px; background:#55efc4; border:none; border-radius:5px;">Search Users</button>
+        <hr style="margin:20px;">
+        <input type="text" id="post-input" placeholder="What's on your mind?" style="width:60%; padding:10px; border-radius:5px; border:none;">
+        <button onclick="sendPost()" style="padding:10px; background:#74b9ff; border:none; border-radius:5px;">Post</button>
+        <div id="results-container" style="margin-top:20px;"></div>
     </div>
 
-    <!-- PROFILE -->
-    <div id="profile-page" class="page">
+    <div id="reel-page" class="page"><h3>Reels</h3></div>
+    <div id="game-page" class="page"><h3>Battle Arena</h3></div>
+    <div id="profile-page" class="page" style="text-align:center;">
         <h3>Profile</h3>
+        <button onclick="logout()" style="padding:8px 15px; background:#ff4757; border:none; color:white; border-radius:5px;">Logout</button>
         <p id="user-display"></p>
     </div>
 
-    <!-- NAVIGATION -->
     <div class="navbar" id="nav-bar">
         <button class="nav-btn" onclick="navigate('feed-page', this)">Feed</button>
         <button class="nav-btn" onclick="navigate('reel-page', this)">Reels</button>
@@ -60,33 +120,23 @@
     </div>
 
     <script>
-        function login() {
-            const name = document.getElementById('username').value;
-            if(name.trim() !== "") {
-                document.getElementById('user-display').innerText = "Developer: " + name;
-                document.getElementById('login-page').classList.remove('active');
-                document.getElementById('feed-page').classList.add('active');
+        window.onload = () => {
+            if (localStorage.getItem('saddam_user')) {
+                document.getElementById('login-page').style.display = 'none';
                 document.getElementById('nav-bar').style.display = 'flex';
+                document.getElementById('top-header').style.display = 'flex';
+                document.getElementById('user-display').innerText = "User: " + localStorage.getItem('saddam_user');
             } else {
-                alert("Please enter a name!");
+                document.getElementById('login-page').style.display = 'flex';
             }
-        }
-
-        function navigate(pageId, btn) {
+        };
+        function navigate(id, btn) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
+            document.getElementById(id).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
             btn.classList.add('active-nav');
         }
-
-        // Game Movement
-        const player = document.getElementById('player');
-        let x = 0;
-        document.addEventListener('keydown', (e) => {
-            if(e.key === 'ArrowRight' && x < 270) x += 20;
-            if(e.key === 'ArrowLeft' && x > 0) x -= 20;
-            player.style.left = x + 'px';
-        });
+        function logout() { localStorage.clear(); location.reload(); }
     </script>
 </body>
 </html>
