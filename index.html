@@ -2,52 +2,44 @@
 <html>
 <head>
     <style>
-        /* CSS Fix: Sahi tarika */
-.app-page { 
-    display: none; /* Element ko chupaane ke liye 'none' sahi value hai */
-}
-
-.app-page.page-active { 
-    display: block !important; /* Jab active class ho, tab dikhaye */
-}
-
-.video-showcase-grid { 
-    display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-    gap: 20px; 
-    padding: 20px; 
-}
-
-.video-card { 
-    background: #09090e; 
-    border: 1px solid rgba(255,255,255,0.05); 
-    border-radius: 16px; 
-    padding: 15px; 
-    color: white; 
-}
-
-.workspace { 
-    background: #000; 
-    min-height: 100vh; 
-    color: white; 
-}
+        /* 1-15: CSS Framework Setup */
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
+        .app-page { display: none; padding: 20px; }
+        .app-page.page-active { display: block !important; }
         
+        /* 16-25: Grid Layout for Explore Feed */
+        .video-showcase-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 20px; 
+        }
+        
+        /* 26-30: Sidebar & Workspace styling */
+        .premium-sidebar { width: 250px; border-right: 1px solid #333; height: 100vh; position: fixed; }
+        .workspace { margin-left: 250px; padding: 20px; }
+        .nav-menu-list { list-style: none; padding: 0; }
+        .nav-menu-list li { padding: 15px; cursor: pointer; border-bottom: 1px solid #222; }
+        .nav-menu-list li.active { background: #1a1a1a; color: #00f2ff; }
+    </style>
 </head>
 <body>
-
     <div id="home-screen">
         <nav class="premium-sidebar">
             <ul class="nav-menu-list">
-                <li id="btn-console" onclick="switchPage('page-console', 'btn-console')">Cloud Console</li>
+                <li id="btn-console" class="active" onclick="switchPage('page-console', 'btn-console')">Cloud Console</li>
                 <li id="btn-feed" onclick="switchPage('page-feed', 'btn-feed')">🚀 Explore Feed</li>
             </ul>
         </nav>
 
         <main class="workspace">
             <div id="page-console" class="app-page page-active"><h1>Cloud Console</h1></div>
-            
             <div id="page-feed" class="app-page">
-                <h2 style="padding: 20px;">Explore Feed</h2>
+                <h2>Explore Feed</h2>
+                <div id="feed-container" class="video-showcase-grid"></div>
+            </div>
+        </main>
+    </div>
+    
                 <div id="feed-container" class="video-showcase-grid"></div>
             </div>
         </main>
