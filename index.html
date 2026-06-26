@@ -99,10 +99,9 @@
         const db = getDatabase(app);
         const auth = getAuth(app);
 
-        // GLOBAL LIVE SESSION CHECKER (No LocalStorage Used)
+        // GLOBAL LIVE SESSION CHECKER
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Agar user authenticated hai, dashboard data sync karein
                 const emailPrefix = user.email.split('@')[0];
                 
                 document.getElementById('auth-screen').style.display = 'none';
@@ -112,7 +111,6 @@
                 document.getElementById('prof-name').innerText = emailPrefix;
                 document.getElementById('prof-node-id').innerText = `NODE-${emailPrefix.toUpperCase()}`;
 
-                // Firebase Realtime Database se DP sync karein
                 const dbRef = ref(db);
                 try {
                     const snapshot = await get(child(dbRef, `users/${emailPrefix}/dp`));
@@ -126,12 +124,12 @@
                 }
                 startRealTimeMetrics();
             } else {
-                // No user logged in
                 document.getElementById('home-screen').style.display = 'none';
                 document.getElementById('auth-screen').style.display = 'flex';
             }
         });
 
+        // CREATE ACCOUNT HANDLER
         window.handleRegister = async function(event) {
             event.preventDefault();
             const user = document.getElementById('reg-user').value.trim();
@@ -140,12 +138,10 @@
             errorDiv.style.display = 'none';
 
             const cleanUser = user.replace(/[^a-zA-Z0-9]/g, "_");
-            const fakeEmail = `${cleanUser}@infinityos.com`; // Firebase Auth ke liye email mapping
+            const fakeEmail = `${cleanUser}@infinityos.com`;
 
             try {
-                // Firebase Auth unique user check aur create ek sath karta hai
-                const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, pass);
-                // Profile mapping database node initialization
+                await createUserWithEmailAndPassword(auth, fakeEmail, pass);
                 await set(ref(db, `users/${cleanUser}`), {
                     username: user,
                     created_at: new Date().toISOString()
@@ -157,6 +153,7 @@
             }
         };
 
+        // SIGN IN HANDLER
         window.handleLogin = async function(event) {
             event.preventDefault();
             const user = document.getElementById('login-user').value.trim();
@@ -175,7 +172,6 @@
             }
         };
 
-        // IMAGE HANDLER - Base64 String pushed directly to Firebase Realtime Database
         window.processAvatarChange = function(event) {
             const file = event.target.files[0];
             const currentUser = auth.currentUser;
@@ -184,8 +180,6 @@
                 const reader = new FileReader();
                 reader.onload = async function(e) {
                     const base64Image = e.target.result;
-                    
-                    // Direct Firebase Database Storage
                     await set(ref(db, `users/${emailPrefix}/dp`), base64Image);
                     document.getElementById('prof-initial').innerHTML = `<img src="${base64Image}">`;
                 };
@@ -317,50 +311,54 @@
                 </div>
             </div>
 
-            <div id="page-creator" class="app-page"
+            <div id="page-creator" class="app-page">
                 <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">Digital Content Portfolio</h2>
                 <p style="color: #6b7280; font-size: 14px; margin-bottom: 25px;">Apne banaye hue funny aur sad status video ka link aur tracking portal yahan setup karein.</p>
+                
                 <div class="video-showcase-grid">
                     <div class="video-card">
-                        <span class="content-badge">Sad Status Node</span>
-                        <div class="video-title">The Silent Observer V1</div>
+                        The Silent Observer V1</div>
                         <p class="video-desc">Deep atmospheric editing with synchronized 90s aesthetic bgm layers.</p>
                         <a href="#" class="action-link">Open Analytics →</a>
                     </div>
                 </div>
             </div>
-                        <div id="page-matrix" class="app-page">
+
+            <div id="page-matrix" class="app-page">
+                <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">Analytics Node</h2>
+                <p style="color: #6b7280; font-size: 14px; margin-bottom: 25px;">Real-time traffic and stream data tracker.</p>
                 <div class="matrix-grid">
-                    <div class="matrix-box" style="border-left: 4px solid #4f46e5;">
-                        <div style="color: #6b7280; font-size:12px; text-transform:uppercase;">Cloud Data Streams</div>
-                        <div id="data-stream-counter" style="font-size:32px; font-weight:800; margin-top:10px; color:#fff;">482.9K</div>
-                        <div style="color: #10b981; font-size: 11px; margin-top: 5px;">↑ Live Syncing Streams...</div>
+                    <div class="matrix-box">
+                        <div style="color: #6b7280; font-size:12px; text-transform:uppercase;">Total Streams</div>
+                        <div id="data-stream-counter" style="font-size:26px; color:#00f2fe; font-weight:800; margin-top:5px;">482.9K</div>
                     </div>
                 </div>
             </div>
 
             <div id="page-profile" class="app-page">
-                <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">Identity Management Node</h2>
-                <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">Authenticated developer credentials aur profile branding control parameters.</p>
-
+                <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">User Control Profile</h2>
+                <p style="color: #6b7280; font-size: 14px; margin-bottom: 25px;">Manage cloud configurations and server display avatar.</p>
+                
                 <div class="profile-wrapper">
                     <div class="profile-hero">
                         <div class="profile-avatar-container" onclick="triggerAvatarUpload()">
                             <div class="profile-avatar-frame" id="prof-initial">U</div>
-                            <div class="avatar-edit-overlay">✏️</div>
+                            <div class="avatar-edit-overlay">📷</div>
                         </div>
-                        <input type="file" id="hidden-avatar-input" accept="image/*" style="display: none;" onchange="processAvatarChange(event)">
-                        
+                        <input type="file" id="hidden-avatar-input" style="display:none;" accept="image/*" onchange="processAvatarChange(event)">
                         <div class="profile-meta">
-                            <h3 id="prof-name">User Session</h3>
-                            <p><span class="glow-dot"></span> <span style="color: #10b981; font-weight: 600;">Active Identity Core</span></p>
+                            <h3 id="prof-name">User</h3>
+                            <p>Active Node Operator</p>
                         </div>
                     </div>
-
                     <div class="info-matrix">
                         <div class="info-card">
-                            <label>System Node Key</label>
-                            <span id="prof-node-id">NODE-UNKNOWN</span>
+                            <label>Assigned ID</label>
+                            <span id="prof-node-id">NODE-UNASSIGNED</span>
+                        </div>
+                        <div class="info-card">
+                            <label>Security Protocol</label>
+                            <span>SSL + Firebase Auth v10</span>
                         </div>
                     </div>
                 </div>
