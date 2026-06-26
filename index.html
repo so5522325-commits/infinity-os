@@ -2,10 +2,12 @@
 <html>
 <head>
     <style>
+        /* CSS Fix: Ensure layout occupies space */
         .app-page { display: none; }
-        .app-page.page-active { display: block; }
-        .video-showcase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .video-card { background: #09090e; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 15px; }
+        .app-page.page-active { display: block !important; }
+        .video-showcase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 20px; }
+        .video-card { background: #09090e; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 15px; color: white; }
+        .workspace { background: #000; min-height: 100vh; color: white; }
     </style>
 </head>
 <body>
@@ -13,46 +15,40 @@
     <div id="home-screen">
         <nav class="premium-sidebar">
             <ul class="nav-menu-list">
-                <li id="btn-console" class="active" onclick="switchPage('page-console', 'btn-console')">Cloud Console</li>
-                <li id="btn-creator" onclick="switchPage('page-creator', 'btn-creator')">Creator Node</li>
-                <li id="btn-matrix" onclick="switchPage('page-matrix', 'btn-matrix')">Analytics Node</li>
-                <li id="btn-profile" onclick="switchPage('page-profile', 'btn-profile')">User Profile</li>
+                <li id="btn-console" onclick="switchPage('page-console', 'btn-console')">Cloud Console</li>
                 <li id="btn-feed" onclick="switchPage('page-feed', 'btn-feed')">🚀 Explore Feed</li>
             </ul>
         </nav>
 
         <main class="workspace">
-            <div id="page-console" class="app-page page-active">...</div>
-            <div id="page-creator" class="app-page">...</div>
-            <div id="page-matrix" class="app-page">...</div>
+            <div id="page-console" class="app-page page-active"><h1>Cloud Console</h1></div>
             
             <div id="page-feed" class="app-page">
-                <h2 style="color: #fff; margin-bottom: 20px;">Explore Feed</h2>
+                <h2 style="padding: 20px;">Explore Feed</h2>
                 <div id="feed-container" class="video-showcase-grid"></div>
             </div>
-
-            <div id="page-profile" class="app-page">...</div>
         </main>
     </div>
 
     <script>
+        // Fix: Navigation Logic
         window.switchPage = function(pageId, btnId) {
-            document.querySelectorAll('.app-page').forEach(p => { p.classList.remove('page-active'); p.style.display = 'none'; });
-            document.querySelectorAll('.nav-menu-list li').forEach(b => b.classList.remove('active'));
-            
+            document.querySelectorAll('.app-page').forEach(p => { p.style.display = 'none'; p.classList.remove('page-active'); });
             const targetPage = document.getElementById(pageId);
-            targetPage.style.display = 'block';
-            targetPage.classList.add('page-active');
-            document.getElementById(btnId).classList.add('active');
-            
+            if(targetPage) {
+                targetPage.style.display = 'block';
+                targetPage.classList.add('page-active');
+            }
             if(pageId === 'page-feed') { loadGlobalFeed(); }
         };
 
+        // Fix: Data Fetching Logic
         window.loadGlobalFeed = async function() {
             const feedContainer = document.getElementById('feed-container');
-            feedContainer.innerHTML = "<p style='color:#6b7280; text-align:center;'>Fetching Reels...</p>";
+            feedContainer.innerHTML = "<p style='text-align:center;'>Fetching Reels...</p>";
             
             try {
+                // Ensure 'db' and 'ref' are initialized in your main script
                 const dbRef = ref(db, 'users');
                 const snapshot = await get(dbRef);
                 feedContainer.innerHTML = "";
@@ -65,23 +61,19 @@
                                 const card = document.createElement('div');
                                 card.className = 'video-card';
                                 card.innerHTML = `
-                                    ${post.mediaType === 'video' 
-                                        ? `<video src="${post.media}" style="width:100%; border-radius:12px;" controls></video>` 
-                                        : `<img src="${post.media}" style="width:100%; border-radius:12px;">`}
+                                    ${post.mediaType === 'video' ? `<video src="${post.media}" style="width:100%; border-radius:12px;" controls></video>` : `<img src="${post.media}" style="width:100%; border-radius:12px;">`}
                                     <div style="padding:10px;">
-                                        <p style="font-weight:600; color:#fff;">@${userSnapshot.key}</p>
-                                        <p style="font-size:13px; color:#6b7280;">${post.caption}</p>
+                                        <p style="font-weight:600;">@${userSnapshot.key}</p>
                                     </div>
                                 `;
                                 feedContainer.appendChild(card);
                             });
                         }
                     });
-                } else {
-                    feedContainer.innerHTML = "<p style='color:#6b7280; text-align:center;'>No posts found.</p>";
                 }
             } catch(e) { 
-                feedContainer.innerHTML = "<p style='color:red; text-align:center;'>Error loading feed.</p>"; 
+                feedContainer.innerHTML = "<p style='color:red;'>Error loading feed. Check Console.</p>";
+                console.error("Firebase Error:", e);
             }
         };
     </script>
