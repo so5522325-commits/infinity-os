@@ -63,23 +63,25 @@
         /* PROFILE SECTION UI */
         .profile-wrapper { background: #09090e; border-radius: 24px; border: 1px solid rgba(255,255,255,0.03); padding: 35px; margin-top: 20px; }
         .profile-hero { display: flex; align-items: center; gap: 25px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 30px; margin-bottom: 30px; flex-wrap: wrap; }
-        .profile-avatar-frame { width: 90px; height: 90px; background: linear-gradient(135deg, #4f46e5, #00f2fe); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; color: #fff; font-weight: 700; box-shadow: 0 10px 25px rgba(0, 242, 254, 0.2); }
+        
+        /* INTERACTIVE AVATAR WITH EDIT ICON */
+        .profile-avatar-container { position: relative; width: 95px; height: 95px; cursor: pointer; }
+        .profile-avatar-frame { width: 100%; height: 100%; background: linear-gradient(135deg, #4f46e5, #00f2fe); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; color: #fff; font-weight: 700; box-shadow: 0 10px 25px rgba(0, 242, 254, 0.2); overflow: hidden; }
+        .profile-avatar-frame img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .avatar-edit-overlay { position: absolute; bottom: 0; right: 0; background: #00f2fe; width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; color: #020204; border: 2px solid #09090e; box-shadow: 0 2px 10px rgba(0,242,254,0.4); }
+        
         .profile-meta h3 { font-size: 24px; font-weight: 700; color: #fff; }
         .profile-meta p { color: #6b7280; font-size: 14px; margin-top: 4px; display: flex; align-items: center; gap: 6px; }
         .info-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
         .info-card { background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); padding: 20px; border-radius: 16px; }
         .info-card label { color: #6b7280; font-size: 11px; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 6px; }
         .info-card span { color: #e5e7eb; font-size: 15px; font-weight: 500; }
-        .social-link-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
-        .social-link-item:last-child { border-bottom: none; }
     </style>
-
-    <!-- SECURE CRYPTO ENGINE -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         // FIREBASE CONFIGURATION
         const firebaseConfig = {
@@ -95,6 +97,40 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        // GLOBAL LIVE SESSION CHECKER (No LocalStorage Used)
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Agar user authenticated hai, dashboard data sync karein
+                const emailPrefix = user.email.split('@')[0];
+                
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('home-screen').style.display = 'grid';
+                document.getElementById('live-greeting').innerText = `Hello, ${emailPrefix}!`;
+                document.getElementById('sys-profile-tag').innerText = `@${emailPrefix}`;
+                document.getElementById('prof-name').innerText = emailPrefix;
+                document.getElementById('prof-node-id').innerText = `NODE-${emailPrefix.toUpperCase()}`;
+
+                // Firebase Realtime Database se DP sync karein
+                const dbRef = ref(db);
+                try {
+                    const snapshot = await get(child(dbRef, `users/${emailPrefix}/dp`));
+                    if (snapshot.exists()) {
+                        document.getElementById('prof-initial').innerHTML = `<img src="${snapshot.val()}">`;
+                    } else {
+                        document.getElementById('prof-initial').innerText = emailPrefix.charAt(0).toUpperCase();
+                    }
+                } catch (e) {
+                    document.getElementById('prof-initial').innerText = emailPrefix.charAt(0).toUpperCase();
+                }
+                startRealTimeMetrics();
+            } else {
+                // No user logged in
+                document.getElementById('home-screen').style.display = 'none';
+                document.getElementById('auth-screen').style.display = 'flex';
+            }
+        });
 
         window.handleRegister = async function(event) {
             event.preventDefault();
@@ -104,27 +140,19 @@
             errorDiv.style.display = 'none';
 
             const cleanUser = user.replace(/[^a-zA-Z0-9]/g, "_");
+            const fakeEmail = `${cleanUser}@infinityos.com`; // Firebase Auth ke liye email mapping
 
             try {
-                const dbRef = ref(db);
-                const snapshot = await get(child(dbRef, `users/${cleanUser}`));
-                
-                if (snapshot.exists()) {
-                    errorDiv.innerText = "Yeh username pehle se maujood hai!";
-                    errorDiv.style.display = 'block';
-                } else {
-                    // Password Encryption Node (SHA-256 Hashing)
-                    const encryptedPassword = CryptoJS.SHA256(pass).toString();
-
-                    await set(ref(db, 'users/' + cleanUser), {
-                        username: user,
-                        password: encryptedPassword
-                    });
-                    alert('Account Secure Encrypted Node me successfully save ho gaya! Ab login karein.');
-                    toggleAuth('login');
-                }
+                // Firebase Auth unique user check aur create ek sath karta hai
+                const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, pass);
+                // Profile mapping database node initialization
+                await set(ref(db, `users/${cleanUser}`), {
+                    username: user,
+                    created_at: new Date().toISOString()
+                });
+                alert('Account securely initialized inside Cloud Engine! Logging in...');
             } catch (error) {
-                errorDiv.innerText = "Database Error: Connection failed.";
+                errorDiv.innerText = "Error: Username exists or invalid password (min 6 characters).";
                 errorDiv.style.display = 'block';
             }
         };
@@ -137,34 +165,64 @@
             errorDiv.style.display = 'none';
 
             const cleanUser = user.replace(/[^a-zA-Z0-9]/g, "_");
+            const fakeEmail = `${cleanUser}@infinityos.com`;
 
             try {
-                const dbRef = ref(db);
-                const snapshot = await get(child(dbRef, `users/${cleanUser}`));
-
-                // Input password ko bhi encrypt karke database hash se match karein
-                const hashedInputPassword = CryptoJS.SHA256(pass).toString();
-
-                if (snapshot.exists() && snapshot.val().password === hashedInputPassword) {
-                    document.getElementById('auth-screen').style.display = 'none';
-                    document.getElementById('home-screen').style.display = 'grid';
-                    document.getElementById('live-greeting').innerText = `Hello, ${user}!`;
-                    document.getElementById('sys-profile-tag').innerText = `@${user.toLowerCase().replace(/\s+/g, '')}`;
-                    
-                    // Profile fields sync
-                    document.getElementById('prof-name').innerText = user;
-                    document.getElementById('prof-node-id').innerText = `NODE-${cleanUser.toUpperCase()}`;
-                    document.getElementById('prof-initial').innerText = user.charAt(0).toUpperCase();
-
-                    startRealTimeMetrics();
-                } else {
-                    errorDiv.innerText = "Galat Username ya Password!";
-                    errorDiv.style.display = 'block';
-                }
+                await signInWithEmailAndPassword(auth, fakeEmail, pass);
             } catch (error) {
-                errorDiv.innerText = "System authentication timeout.";
+                errorDiv.innerText = "Galat Username ya Password!";
                 errorDiv.style.display = 'block';
             }
+        };
+
+        // IMAGE HANDLER - Base64 String pushed directly to Firebase Realtime Database
+        window.processAvatarChange = function(event) {
+            const file = event.target.files[0];
+            const currentUser = auth.currentUser;
+            if (file && currentUser) {
+                const emailPrefix = currentUser.email.split('@')[0];
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const base64Image = e.target.result;
+                    
+                    // Direct Firebase Database Storage
+                    await set(ref(db, `users/${emailPrefix}/dp`), base64Image);
+                    document.getElementById('prof-initial').innerHTML = `<img src="${base64Image}">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        window.purgeSession = function() {
+            signOut(auth).then(() => {
+                location.reload();
+            });
+        };
+
+        window.toggleAuth = function(type) {
+            if(type === 'register') {
+                document.getElementById('card-login').style.display = 'none';
+                document.getElementById('card-register').style.display = 'block';
+            } else {
+                document.getElementById('card-register').style.display = 'none';
+                document.getElementById('card-login').style.display = 'block';
+            }
+        };
+
+        window.togglePass = function(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        };
+
+        window.switchPage = function(pageId, btnId) {
+            document.querySelectorAll('.app-page').forEach(p => p.classList.remove('page-active'));
+            document.querySelectorAll('.nav-menu-list li').forEach(b => b.classList.remove('active'));
+            document.getElementById(`page-${pageId}`).classList.add('page-active');
+            document.getElementById(btnId).classList.add('active');
+        };
+
+        window.triggerAvatarUpload = function() {
+            document.getElementById('hidden-avatar-input').click();
         };
 
         function startRealTimeMetrics() {
@@ -232,7 +290,7 @@
                     <li id="btn-profile" onclick="switchPage('profile', 'btn-profile')">👤 User Profile</li>
                 </ul>
             </div>
-            <div><div class="logout-action" onclick="location.reload()">🔒 Purge Session</div></div>
+            <div><div class="logout-action" onclick="purgeSession()">🔒 Purge Session</div></div>
         </nav>
 
         <main class="workspace">
@@ -244,7 +302,6 @@
                 <div class="avatar-badge"><span id="sys-profile-tag">@Guest</span></div>
             </header>
 
-            <!-- LIVE CONSOLE -->
             <div id="page-console" class="app-page page-active">
                 <div class="matrix-grid">
                     <div class="matrix-box" style="border-left:4px solid #10b981;">
@@ -260,11 +317,9 @@
                 </div>
             </div>
 
-            <!-- CREATOR NODE -->
-            <div id="page-creator" class="app-page">
+            <div id="page-creator" class="app-page"
                 <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">Digital Content Portfolio</h2>
                 <p style="color: #6b7280; font-size: 14px; margin-bottom: 25px;">Apne banaye hue funny aur sad status video ka link aur tracking portal yahan setup karein.</p>
-                
                 <div class="video-showcase-grid">
                     <div class="video-card">
                         <span class="content-badge">Sad Status Node</span>
@@ -272,17 +327,9 @@
                         <p class="video-desc">Deep atmospheric editing with synchronized 90s aesthetic bgm layers.</p>
                         <a href="#" class="action-link">Open Analytics →</a>
                     </div>
-                    <div class="video-card">
-                        <span class="content-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">Funny Dialogue Node</span>
-                        <div class="video-title">Trending Context Mockup</div>
-                        <p class="video-desc">Fast paced sound effects loop combined with premium text animation presets.</p>
-                        <a href="#" class="action-link">Open Analytics →</a>
-                    </div>
                 </div>
             </div>
-
-            <!-- ANALYTICS NODE -->
-            <div id="page-matrix" class="app-page">
+                        <div id="page-matrix" class="app-page">
                 <div class="matrix-grid">
                     <div class="matrix-box" style="border-left: 4px solid #4f46e5;">
                         <div style="color: #6b7280; font-size:12px; text-transform:uppercase;">Cloud Data Streams</div>
@@ -292,14 +339,18 @@
                 </div>
             </div>
 
-            <!-- USER PROFILE NODE PAGE -->
             <div id="page-profile" class="app-page">
                 <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">Identity Management Node</h2>
                 <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">Authenticated developer credentials aur profile branding control parameters.</p>
 
                 <div class="profile-wrapper">
                     <div class="profile-hero">
-                        <div class="profile-avatar-frame" id="prof-initial">U</div>
+                        <div class="profile-avatar-container" onclick="triggerAvatarUpload()">
+                            <div class="profile-avatar-frame" id="prof-initial">U</div>
+                            <div class="avatar-edit-overlay">✏️</div>
+                        </div>
+                        <input type="file" id="hidden-avatar-input" accept="image/*" style="display: none;" onchange="processAvatarChange(event)">
+                        
                         <div class="profile-meta">
                             <h3 id="prof-name">User Session</h3>
                             <p><span class="glow-dot"></span> <span style="color: #10b981; font-weight: 600;">Active Identity Core</span></p>
@@ -308,29 +359,8 @@
 
                     <div class="info-matrix">
                         <div class="info-card">
-                            <label>System Node Allocation</label>
-                            <span id="prof-node-id" style="color: #00f2fe; font-family: monospace;">NODE-UNKNOWN</span>
-                        </div>
-                        <div class="info-card">
-                            <label>Designation Parameter</label>
-                            <span>Digital Content Architect & Business Owner</span>
-                        </div>
-                        <div class="info-card">
-                            <label>Project Operational Core</label>
-                            <span>Faceless Media Branding (Mysterious Theme)</span>
-                        </div>
-                        <div class="info-card">
-                            <label>Connected Gateway Nodes</label>
-                            <div style="margin-top: 10px;">
-                                <div class="social-link-item">
-                                    <span style="font-size: 13px; color: #a5b4fc;">📱 Instagram Network</span>
-                                    <a href="#" class="action-link" style="font-size: 12px;">Linked →</a>
-                                </div>
-                                <div class="social-link-item">
-                                    <span style="font-size: 13px; color: #a5b4fc;">📺 YouTube Terminal</span>
-                                    <a href="#" class="action-link" style="font-size: 12px;">Linked →</a>
-                                </div>
-                            </div>
+                            <label>System Node Key</label>
+                            <span id="prof-node-id">NODE-UNKNOWN</span>
                         </div>
                     </div>
                 </div>
@@ -338,34 +368,5 @@
         </main>
     </div>
 
-    <script>
-        function toggleAuth(type) {
-            document.getElementById('login-error').style.display = 'none';
-            document.getElementById('register-error').style.display = 'none';
-            if(type === 'register') {
-                document.getElementById('card-login').style.display = 'none';
-                document.getElementById('card-register').style.display = 'block';
-            } else {
-                document.getElementById('card-login').style.display = 'block';
-                document.getElementById('card-register').style.display = 'none';
-            }
-        }
-
-        function switchPage(pageId, buttonId) {
-            document.querySelectorAll('.app-page').forEach(p => p.classList.remove('page-active'));
-            document.querySelectorAll('.nav-menu-list li').forEach(b => b.classList.remove('active'));
-            document.getElementById('page-' + pageId).classList.add('page-active');
-            document.getElementById(buttonId).classList.add('active');
-        }
-
-        function togglePass(fieldId) {
-            const input = document.getElementById(fieldId);
-            if (input.type === "password") {
-                input.type = "text";
-            } else {
-                input.type = "password";
-            }
-        }
-    </script>
 </body>
 </html>
