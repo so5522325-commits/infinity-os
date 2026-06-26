@@ -1,82 +1,105 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
-        .app-page { display: none; padding: 20px; }
-        .app-page.page-active { display: block; }
-        .video-showcase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .premium-sidebar { width: 250px; border-right: 1px solid #333; height: 100vh; position: fixed; }
-        .workspace { margin-left: 250px; padding: 20px; }
-        .nav-menu-list { list-style: none; padding: 0; }
-        .nav-menu-list li { padding: 15px; cursor: pointer; border-bottom: 1px solid #222; }
-        .nav-menu-list li.active { background: #1a1a1a; color: #00f2ff; }
-    </style>
-</head>
-<body>
-    <div id="home-screen">
-        <nav class="premium-sidebar">
-            <ul class="nav-menu-list">
-                <li id="btn-console" class="active" onclick="switchPage('page-console', 'btn-console')">Cloud Console</li>
-                <li id="btn-feed" onclick="switchPage('page-feed', 'btn-feed')">🚀 Explore Feed</li>
-            </ul>
-        </nav>
-        <main class="workspace">
-            <div id="page-console" class="app-page page-active"><h1>Cloud Console</h1></div>
-            <div id="page-feed" class="app-page">
-                <h2>Explore Feed</h2>
-                <div id="feed-container" class="video-showcase-grid"></div>
-            </div>
-        </main>
-    </div>
+// --- UPDATED SCRIPT BLOCK ---
 
-    <script>
-        // Database Reference
-        const db = firebase.database();
+// 1. DYNAMIC FEED LOADER (Home Screen ke liye)
+async function loadAllPosts() {
+    const feedContainer = document.getElementById('home-feed-container'); 
+    if(!feedContainer) return;
+    
+    const dbRef = ref(db, 'users');
+    feedContainer.innerHTML = ""; 
 
-        window.switchPage = function(pageId, btnId) {
-            document.querySelectorAll('.app-page').forEach(p => p.classList.remove('page-active'));
-            const targetPage = document.getElementById(pageId);
-            if (targetPage) targetPage.classList.add('page-active');
-            
-            if (pageId === 'page-feed') loadGlobalFeed();
-        };
-
-        window.loadGlobalFeed = async function() {
-            const feedContainer = document.getElementById('feed-container');
-            feedContainer.innerHTML = "<p style='text-align:center;'>Fetching Reels...</p>";
-            
-            try {
-                const snapshot = await firebase.database().ref('users').get();
-                feedContainer.innerHTML = "";
-                
-                if (snapshot.exists()) {
-                    snapshot.forEach((userSnapshot) => {
-                        const userData = userSnapshot.val();
-                        // Data Safety Check
-                        if (userData && userData.posts) {
-                            Object.values(userData.posts).forEach((post) => {
-                                const card = document.createElement('div');
-                                card.className = 'video-card';
-                                card.innerHTML = `
-                                    ${post.mediaType === 'video' 
-                                        ? `<video src="${post.media}" style="width:100%; border-radius:12px;" controls></video>` 
-                                        : `<img src="${post.media}" style="width:100%; border-radius:12px;">`
-                                    }
-                                    <div style="padding:10px;"><p style="font-weight:600;">@${userSnapshot.key}</p></div>
-                                `;
-                                feedContainer.appendChild(card);
-                            });
-                        }
-                    });
-                } else {
-                    feedContainer.innerHTML = "<p>No posts found.</p>";
-                }
-            } catch(e) {
-                feedContainer.innerHTML = "<p style='color:red;'>Error loading feed.</p>";
-                console.error("Firebase Error:", e);
+    get(dbRef).then((snapshot) => {
+        snapshot.forEach((userSnapshot) => {
+            const userData = userSnapshot.val();
+            if (userData.posts) {
+                Object.values(userData.posts).forEach(post => {
+                    renderPostCard(post, feedContainer);
+                });
             }
-        };
-    </script>
-</body>
-</html>
+        });
+    });
+}
+
+function renderPostCard(post, container) {
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.innerHTML = `
+        <div class="content-badge">FEED</div>
+        <div class="video-title">${post.caption}</div>
+        <div class="gallery-media" style="height: auto; margin-bottom:10px;">
+            ${post.media ? (post.mediaType === 'video' ? `<video src="${post.media}" controls style="width:100%"></video>` : `<img src="${post.media}" style="width:100%">`) : ""}
+        </div>
+    `;
+    container.appendChild(card);
+}
+
+// 2. PROFILE POSTS LOADER (Profile Page ke liye)
+async function loadUserPosts(username) {
+    const postsRef = ref(db, `users/${username}/posts`);
+    const gallery = document.getElementById('user-gallery');
+    if(!gallery) return;
+    
+    get(postsRef).then((snapshot) => {
+        gallery.innerHTML = "";
+        if (snapshot.exists()) {
+            snapshot.forEach((child) => {
+                const post = child.val();
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+                item.innerHTML = `
+                    <div class="gallery-media">
+                        ${post.mediaType === 'video' ? `<video src="${post.media}"></video>` : `<img src="${post.media}">`}
+                    </div>
+                    <div class="gallery-caption">${post.caption}</div>
+                `;
+                gallery.appendChild(item);
+            });
+        } else {
+            gallery.innerHTML = `<p class="no-posts-text">Abhi tak koi post nahi ki hai.</p>`;
+        }
+    });
+}
+
+// 3. UPDATED PUBLISH FUNCTION
+window.publishUserPost = async function() {
+    const caption = document.getElementById('post-caption').value.trim();
+    const activeUser = localStorage.getItem('secure_session_user');
+
+    if (!activeUser) return;
+    if (!caption && !tempPostMedia.data) {
+        alert("Post me kuch likhein ya media add karein!");
+        return;
+    }
+
+    const postBtn = document.getElementById('submit-post-btn');
+    postBtn.innerText = "Uploading...";
+    postBtn.disabled = true;
+
+    try {
+        const postsRef = ref(db, `users/${activeUser}/posts`);
+        const newPostRef = push(postsRef);
+        
+        await set(newPostRef, {
+            caption: caption,
+            media: tempPostMedia.data || "",
+            mediaType: tempPostMedia.type || "",
+            timestamp: new Date().toISOString()
+        });
+
+        // Reset
+        document.getElementById('post-caption').value = "";
+        document.getElementById('post-media-preview').style.display = 'none';
+        tempPostMedia = { data: "", type: "" };
+        
+        // Refresh Feeds
+        loadUserPosts(activeUser);
+        loadAllPosts();
+        
+        postBtn.innerText = "Post Published!";
+        setTimeout(() => postBtn.innerText = "Publish Post", 2000);
+        postBtn.disabled = false;
+    } catch (e) {
+        alert("Error uploading post.");
+        postBtn.disabled = false;
+    }
+};
