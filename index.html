@@ -1,413 +1,89 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinity Real OS v6.5 - Fully Secure</title>
     <style>
-        <link rel="icon" type="image/png" href="https://i.ibb.co/3mN9Y7f/infinity-os-v65.png">
-<link rel="apple-touch-icon" href="https://i.ibb.co/3mN9Y7f/infinity-os-v65.png">
-
-        
-        /* --- PREMIUM STYLING --- */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #020204; color: #f3f4f6; min-height: 100vh; display: flex; justify-content: center; align-items: center; overflow-x: hidden; }
-        
-        /* Auth Screen Styles */
-        #auth-screen { display: flex; justify-content: center; align-items: center; width: 100%; height: 100vh; background: radial-gradient(circle at top right, rgba(0, 242, 254, 0.05), transparent); }
-        .auth-card { background: #09090e; padding: 40px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.06); width: 90%; max-width: 390px; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8); text-align: center; }
-        .auth-header h2 { font-size: 28px; margin-bottom: 8px; background: linear-gradient(135deg, #ffffff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
-        .auth-header p { color: #6b7280; font-size: 14px; margin-bottom: 30px; }
-        .field-block { margin-bottom: 22px; text-align: left; position: relative; }
-        .field-block label { color: #9ca3af; display: block; margin-bottom: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
-        .field-block input { width: 100%; padding: 14px 16px; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; background: rgba(255, 255, 255, 0.03); color: #fff; outline: none; font-size: 15px; padding-right: 45px; }
-        .field-block input:focus { border-color: #00f2fe; box-shadow: 0 0 20px rgba(0, 242, 254, 0.15); }
-        .pass-toggle { position: absolute; right: 16px; top: 38px; color: #6b7280; cursor: pointer; font-size: 14px; user-select: none; }
-        .master-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #4f46e5, #00f2fe); color: #fff; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 16px; transition: 0.3s; }
-        .master-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .toggle-link { color: #00f2fe; text-align: center; margin-top: 20px; font-size: 14px; cursor: pointer; text-decoration: underline; }
-        .error-msg { color: #ef4444; font-size: 14px; margin-bottom: 15px; display: none; text-align: left; font-weight: 500; }
-
-        /* Dashboard Styles */
-        #home-screen { display: none; width: 100%; min-height: 100vh; grid-template-columns: 260px 1fr; background: #050508; }
-        @media (max-width: 768px) { 
-            #home-screen { grid-template-columns: 1fr; } 
-            .premium-sidebar { border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.04); padding: 20px !important; } 
-            .workspace { padding: 20px !important; }
-        }
-        .premium-sidebar { background-color: #09090e; border-right: 1px solid rgba(255, 255, 255, 0.04); padding: 35px 24px; display: flex; flex-direction: column; justify-content: space-between; }
-        .brand-signature { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #00f2fe, #4f46e5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 30px; }
-        .nav-menu-list { list-style: none; }
-        .nav-menu-list li { padding: 14px 16px; color: #4b5563; border-radius: 12px; margin-bottom: 8px; cursor: pointer; font-size: 15px; display: flex; align-items: center; gap: 12px; font-weight: 500; transition: 0.2s; }
-        .nav-menu-list li.active, .nav-menu-list li:hover { background: rgba(0, 242, 254, 0.1); color: #00f2fe; }
-        .workspace { padding: 40px 50px; position: relative; }
-        .workspace-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .avatar-badge { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 8px 16px; border-radius: 100px; color: #00f2fe; font-weight: 600; font-size: 14px; }
         .app-page { display: none; }
         .app-page.page-active { display: block; }
-        .matrix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .matrix-box { background: #09090e; border-radius: 20px; padding: 25px; border: 1px solid rgba(255,255,255,0.03); position: relative; overflow: hidden; }
-        .logout-action { color: #ef4444; font-weight: 600; cursor: pointer; margin-top: 20px; font-size: 14px; }
-
-        /* REAL-TIME SYSTEM ELEMENTS */
-        .glow-dot { width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 10px #10b981; margin-right: 6px; animation: blink 1.5s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-        .time-node { color: #6b7280; font-size: 13px; font-weight: 500; margin-top: 4px; }
-
-        /* VIDEO & PORTFOLIO GRID */
-        .video-showcase-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
-        .video-card { background: #09090e; border: 1px solid rgba(255,255,255,0.03); border-radius: 16px; padding: 20px; transition: 0.3s; }
-        .video-card:hover { border-color: #00f2fe; transform: translateY(-2px); }
-        .content-badge { background: rgba(79, 70, 229, 0.2); color: #a5b4fc; font-size: 11px; padding: 4px 10px; border-radius: 8px; display: inline-block; margin-bottom: 12px; font-weight: 600; }
-        .video-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 8px; }
-        .video-desc { font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 15px; }
-        .action-link { color: #00f2fe; text-decoration: none; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-        .action-link:hover { text-decoration: underline; }
-
-        /* PROFILE SECTION UI */
-        .profile-wrapper { background: #09090e; border-radius: 24px; border: 1px solid rgba(255,255,255,0.03); padding: 35px; margin-top: 20px; }
-        .profile-hero { display: flex; align-items: center; gap: 25px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 30px; margin-bottom: 30px; flex-wrap: wrap; }
-        
-        .profile-avatar-container { position: relative; width: 95px; height: 95px; cursor: pointer; }
-        .profile-avatar-frame { width: 100%; height: 100%; background: linear-gradient(135deg, #4f46e5, #00f2fe); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; color: #fff; font-weight: 700; box-shadow: 0 10px 25px rgba(0, 242, 254, 0.2); overflow: hidden; }
-        .profile-avatar-frame img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-        .avatar-edit-overlay { position: absolute; bottom: 0; right: 0; background: #00f2fe; width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; color: #020204; border: 2px solid #09090e; box-shadow: 0 2px 10px rgba(0,242,254,0.4); }
-        
-        .profile-meta h3 { font-size: 24px; font-weight: 700; color: #fff; }
-        .profile-meta p { color: #6b7280; font-size: 14px; margin-top: 4px; display: flex; align-items: center; gap: 6px; }
-        .info-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
-        .info-card { background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); padding: 20px; border-radius: 16px; }
-        .info-card label { color: #6b7280; font-size: 11px; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 6px; }
-        .info-card span { color: #e5e7eb; font-size: 15px; font-weight: 500; }
+        .video-showcase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .video-card { background: #09090e; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 15px; }
     </style>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-        // FIREBASE CONFIGURATION
-        const firebaseConfig = {
-            apiKey: "AIzaSyC32qR8fW2aNa8ubI91CY70oOII9HUFPIQ",
-            authDomain: "infinityos-1cf63.firebaseapp.com",
-            projectId: "infinityos-1cf63",
-            storageBucket: "infinityos-1cf63.firebasestorage.app",
-            messagingSenderId: "1027693906170",
-            appId: "1:1027693906170:web:e943bd826cb07879c0e143",
-            measurementId: "G-CCXT35GRDQ",
-            databaseURL: "https://infinityos-1cf63-default-rtdb.firebaseio.com"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        // SECURE ACTIVE SESSION MONITOR
-        window.addEventListener('DOMContentLoaded', () => {
-            const activeUser = localStorage.getItem('secure_session_user');
-            if (activeUser) {
-                setupDashboardUI(activeUser);
-            } else {
-                document.getElementById('home-screen').style.display = 'none';
-                document.getElementById('auth-screen').style.display = 'flex';
-            }
-        });
-
-        function setupDashboardUI(username) {
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('home-screen').style.display = 'grid';
-            document.getElementById('live-greeting').innerText = `Hello, ${username}!`;
-            document.getElementById('sys-profile-tag').innerText = `@${username}`;
-            document.getElementById('prof-name').innerText = username;
-            document.getElementById('prof-node-id').innerText = `NODE-${username.toUpperCase()}`;
-            
-            // Secure avatar load from Realtime DB
-            const dbRef = ref(db);
-            get(child(dbRef, `users/${username}/dp`)).then((snapshot) => {
-                if (snapshot.exists()) {
-                    document.getElementById('prof-initial').innerHTML = `<img src="${snapshot.val()}">`;
-                } else {
-                    document.getElementById('prof-initial').innerText = username.charAt(0).toUpperCase();
-                }
-            }).catch(() => {
-                document.getElementById('prof-initial').innerText = username.charAt(0).toUpperCase();
-            });
-
-            startRealTimeMetrics();
-        }
-
-        // 100% SECURE FIREBASE REGISTRATION (Fixes Error: Username exists)
-        window.handleRegister = async function(event) {
-            event.preventDefault();
-            const user = document.getElementById('reg-user').value.trim();
-            const pass = document.getElementById('reg-pass').value;
-            const errorDiv = document.getElementById('register-error');
-            errorDiv.style.display = 'none';
-
-            if(pass.length < 6) {
-                errorDiv.innerText = "Error: Password must be at least 6 characters.";
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            const cleanUser = user.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-            const dbRef = ref(db);
-
-            try {
-                // Check if user already exists securely via Realtime Database path
-                const snapshot = await get(child(dbRef, `users/${cleanUser}`));
-                if (snapshot.exists()) {
-                    errorDiv.innerText = "Error: Username already exists! Select another one.";
-                    errorDiv.style.display = 'block';
-                    return;
-                }
-
-                // If completely fresh username, lock data into the DB node securely
-                await set(ref(db, `users/${cleanUser}`), {
-                    username: user,
-                    secret_pass: pass,
-                    created_at: new Date().toISOString()
-                });
-
-                alert('Secure Cloud Account Registered successfully!');
-                localStorage.setItem('secure_session_user', cleanUser);
-                setupDashboardUI(cleanUser);
-
-            } catch (error) {
-                errorDiv.innerText = "Database connection error. Try again.";
-                errorDiv.style.display = 'block';
-            }
-        };
-
-        // 100% SECURE DATABASE SIGN-IN (No Bypass, Strict Password Matching)
-        window.handleLogin = async function(event) {
-            event.preventDefault();
-            const user = document.getElementById('login-user').value.trim();
-            const pass = document.getElementById('login-pass').value;
-            const errorDiv = document.getElementById('login-error');
-            errorDiv.style.display = 'none';
-
-            const cleanUser = user.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-            const dbRef = ref(db);
-
-            try {
-                const snapshot = await get(child(dbRef, `users/${cleanUser}`));
-                if (snapshot.exists()) {
-                    const userData = snapshot.val();
-                    // Match decrypted/stored password strictly
-                    if (userData.secret_pass === pass) {
-                        localStorage.setItem('secure_session_user', cleanUser);
-                        setupDashboardUI(cleanUser);
-                    } else {
-                        errorDiv.innerText = "Galat Username ya Password!";
-                        errorDiv.style.display = 'block';
-                    }
-                } else {
-                    errorDiv.innerText = "Galat Username ya Password!";
-                    errorDiv.style.display = 'block';
-                }
-            } catch (error) {
-                errorDiv.innerText = "Network secure block active. Try again.";
-                errorDiv.style.display = 'block';
-            }
-        };
-
-        window.processAvatarChange = function(event) {
-            const file = event.target.files[0];
-            const activeUser = localStorage.getItem('secure_session_user') || "user_node";
-            
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = async function(e) {
-                    const base64Image = e.target.result;
-                    try {
-                        await set(ref(db, `users/${activeUser}/dp`), base64Image);
-                    } catch(err) { }
-                    document.getElementById('prof-initial').innerHTML = `<img src="${base64Image}">`;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        window.purgeSession = function() {
-            localStorage.removeItem('secure_session_user');
-            location.reload();
-        };
-
-        window.toggleAuth = function(type) {
-            if(type === 'register') {
-                document.getElementById('card-login').style.display = 'none';
-                document.getElementById('card-register').style.display = 'block';
-            } else {
-                document.getElementById('card-register').style.display = 'none';
-                document.getElementById('card-login').style.display = 'block';
-            }
-        };
-
-        window.togglePass = function(id) {
-            const input = document.getElementById(id);
-            input.type = input.type === 'password' ? 'text' : 'password';
-        };
-
-        window.switchPage = function(pageId, btnId) {
-            document.querySelectorAll('.app-page').forEach(p => p.classList.remove('page-active'));
-            document.querySelectorAll('.nav-menu-list li').forEach(b => b.classList.remove('active'));
-            document.getElementById(`page-${pageId}`).classList.add('page-active');
-            document.getElementById(btnId).classList.add('active');
-        };
-
-        window.triggerAvatarUpload = function() {
-            document.getElementById('hidden-avatar-input').click();
-        };
-
-        function startRealTimeMetrics() {
-            if(window.metricsInitialized) return;
-            window.metricsInitialized = true;
-
-            setInterval(() => {
-                const now = new Date();
-                document.getElementById('live-clock').innerText = now.toLocaleTimeString();
-            }, 1000);
-
-            let count = 482900;
-            setInterval(() => {
-                count += Math.floor(Math.random() * 5) + 1;
-                document.getElementById('data-stream-counter').innerText = (count / 1000).toFixed(1) + 'K';
-            }, 2000);
-        }
-    </script>
 </head>
 <body>
 
-    <div id="auth-screen">
-        <div class="auth-card" id="card-login" style="display: block;">
-            <div class="auth-header">
-                <h2>Cloud Sign-In</h2>
-                <p>Apne authenticated session me log in karein</p>
-            </div>
-            <div class="error-msg" id="login-error"></div>
-            <form onsubmit="handleLogin(event)">
-                <div class="field-block"><label>Username</label><input type="text" id="login-user" required autocomplete="off"></div>
-                <div class="field-block">
-                    <label>Password</label>
-                    <input type="password" id="login-pass" required>
-                    <span class="pass-toggle" onclick="togglePass('login-pass')">👁</span>
-                </div>
-                <button type="submit" class="master-btn">Unseal Portal</button>
-                <div class="toggle-link" onclick="toggleAuth('register')">Naya Cloud Account Banayein</div>
-            </form>
-        </div>
-
-        <div class="auth-card" id="card-register" style="display: none;">
-            <div class="auth-header">
-                <h2>Cloud Register</h2>
-                <p>Naya data storage block initialize karein</p>
-            </div>
-            <div class="error-msg" id="register-error"></div>
-            <form onsubmit="handleRegister(event)">
-                <div class="field-block"><label>Naya Username</label><input type="text" id="reg-user" required autocomplete="off"></div>
-                <div class="field-block">
-                    <label>Naya Password</label>
-                    <input type="password" id="reg-pass" required>
-                    <span class="pass-toggle" onclick="togglePass('reg-pass')">👁</span>
-                </div>
-                <button type="submit" class="master-btn">Save to Cloud Nodes</button>
-                <div class="toggle-link" onclick="toggleAuth('login')">Pehle se account hai? Log In</div>
-            </form>
-        </div>
-    </div>
-
     <div id="home-screen">
         <nav class="premium-sidebar">
-            <div>
-                <div class="brand-signature">INFINITY.OS v6.5</div>
-                <ul class="nav-menu-list">
-                    <li id="btn-console" class="active" onclick="switchPage('console', 'btn-console')">◈ Cloud Console</li>
-                    <li id="btn-creator" onclick="switchPage('creator', 'btn-creator')">📱 Creator Node</li>
-                    <li id="btn-matrix" onclick="switchPage('matrix', 'btn-matrix')">📈 Analytics Node</li>
-                    <li id="btn-profile" onclick="switchPage('profile', 'btn-profile')">👤 User Profile</li>
-                </ul>
-            </div>
-            <div><div class="logout-action" onclick="purgeSession()">🔒 Purge Session</div></div>
+            <ul class="nav-menu-list">
+                <li id="btn-console" class="active" onclick="switchPage('page-console', 'btn-console')">Cloud Console</li>
+                <li id="btn-creator" onclick="switchPage('page-creator', 'btn-creator')">Creator Node</li>
+                <li id="btn-matrix" onclick="switchPage('page-matrix', 'btn-matrix')">Analytics Node</li>
+                <li id="btn-profile" onclick="switchPage('page-profile', 'btn-profile')">User Profile</li>
+                <li id="btn-feed" onclick="switchPage('page-feed', 'btn-feed')">🚀 Explore Feed</li>
+            </ul>
         </nav>
 
         <main class="workspace">
-            <header class="workspace-topbar">
-                <div>
-                    <h1 id="live-greeting">Welcome</h1>
-                    <div class="time-node">System Time: <span id="live-clock" style="color: #00f2fe;">00:00:00 AM</span></div>
-                </div>
-                <div class="avatar-badge"><span id="sys-profile-tag">@Guest</span></div>
-            </header>
-
-            <div id="page-console" class="app-page page-active">
-                <div class="matrix-grid">
-                    <div class="matrix-box" style="border-left:4px solid #10b981;">
-                        <div style="color: #6b7280; font-size:12px; text-transform:uppercase;">Firebase Status</div>
-                        <div style="font-size:26px; color:#10b981; font-weight:800; margin-top:5px; display: flex; align-items: center;">
-                            <span class="glow-dot"></span>LIVE SECURE
-                        </div>
-                    </div>
-                </div>
-                <div style="background: #09090e; padding: 30px; border-radius: 20px; border:1px solid rgba(255,255,255,0.02);">
-                    <h3 style="color:#00f2fe; font-size:18px;">Asli Cloud Integration Control Log</h3>
-                    <p style="color:#6b7280; margin-top:10px; line-height:1.6; font-size:14px;">Aapka ye web app ab completely Google Firebase Node se live synced hai. Koi bhi registration block empty nahi chhootega aur data instantly encryption node ke sath secure kiya jayega.</p>
-                </div>
+            <div id="page-console" class="app-page page-active">...</div>
+            <div id="page-creator" class="app-page">...</div>
+            <div id="page-matrix" class="app-page">...</div>
+            
+            <div id="page-feed" class="app-page">
+                <h2 style="color: #fff; margin-bottom: 20px;">Explore Feed</h2>
+                <div id="feed-container" class="video-showcase-grid"></div>
             </div>
 
-            <div id="page-creator" class="app-page">
-                <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">Digital Content Portfolio</h2>
-                <p style="color: #6b7280; font-size: 14px; margin-bottom: 25px;">Apne banaye hue funny aur sad status video ka link aur tracking portal yahan setup karein.</p>
-                
-                <div class="video-showcase-grid">
-                    <div class="video-card">
-                        <span class="content-badge">Sad Status Node</span>
-                        <div class="video-title">The Silent Observer V1</div>
-                        <p class="video-desc">Deep atmospheric editing with synchronized 90s aesthetic bgm layers.</p>
-                        <a href="#" class="action-link">Open Analytics →</a>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-matrix" class="app-page">
-                <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">Analytics Node</h2>
-                <p style="color: #6b7280; font-size: 14px; margin-bottom: 25px;">Real-time traffic and stream data tracker.</p>
-                <div class="matrix-grid">
-                    <div class="matrix-box">
-                        <div style="color: #6b7280; font-size:12px; text-transform:uppercase;">Total Streams</div>
-                        <div id="data-stream-counter" style="font-size:26px; color:#00f2fe; font-weight:800; margin-top:5px;">482.9K</div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-profile" class="app-page">
-                <h2 style="color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 5px;">User Control Profile</h2>
-                <p style="color: #6b7280; font-size: 14px; margin-bottom: 25px;">Manage cloud configurations and server display avatar.</p>
-                
-                <div class="profile-wrapper">
-                    <div class="profile-hero">
-                        <div class="profile-avatar-container" onclick="triggerAvatarUpload()">
-                            <div class="profile-avatar-frame" id="prof-initial">U</div>
-                            <div class="avatar-edit-overlay">📷</div>
-                        </div>
-                        <input type="file" id="hidden-avatar-input" style="display:none;" accept="image/*" onchange="processAvatarChange(event)">
-                        <div class="profile-meta">
-                            <h3 id="prof-name">User</h3>
-                            <p>Active Node Operator</p>
-                        </div>
-                    </div>
-                    <div class="info-matrix">
-                        <div class="info-card">
-                            <label>Assigned ID</label>
-                            <span id="prof-node-id">NODE-UNASSIGNED</span>
-                        </div>
-                        <div class="info-card">
-                            <label>Security Protocol</label>
-                            <span>SSL + Firebase Realtime Data Lock</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div id="page-profile" class="app-page">...</div>
         </main>
     </div>
 
+    <script>
+        window.switchPage = function(pageId, btnId) {
+            document.querySelectorAll('.app-page').forEach(p => { p.classList.remove('page-active'); p.style.display = 'none'; });
+            document.querySelectorAll('.nav-menu-list li').forEach(b => b.classList.remove('active'));
+            
+            const targetPage = document.getElementById(pageId);
+            targetPage.style.display = 'block';
+            targetPage.classList.add('page-active');
+            document.getElementById(btnId).classList.add('active');
+            
+            if(pageId === 'page-feed') { loadGlobalFeed(); }
+        };
+
+        window.loadGlobalFeed = async function() {
+            const feedContainer = document.getElementById('feed-container');
+            feedContainer.innerHTML = "<p style='color:#6b7280; text-align:center;'>Fetching Reels...</p>";
+            
+            try {
+                const dbRef = ref(db, 'users');
+                const snapshot = await get(dbRef);
+                feedContainer.innerHTML = "";
+                
+                if (snapshot.exists()) {
+                    snapshot.forEach((userSnapshot) => {
+                        const userData = userSnapshot.val();
+                        if (userData.posts) {
+                            Object.values(userData.posts).forEach((post) => {
+                                const card = document.createElement('div');
+                                card.className = 'video-card';
+                                card.innerHTML = `
+                                    ${post.mediaType === 'video' 
+                                        ? `<video src="${post.media}" style="width:100%; border-radius:12px;" controls></video>` 
+                                        : `<img src="${post.media}" style="width:100%; border-radius:12px;">`}
+                                    <div style="padding:10px;">
+                                        <p style="font-weight:600; color:#fff;">@${userSnapshot.key}</p>
+                                        <p style="font-size:13px; color:#6b7280;">${post.caption}</p>
+                                    </div>
+                                `;
+                                feedContainer.appendChild(card);
+                            });
+                        }
+                    });
+                } else {
+                    feedContainer.innerHTML = "<p style='color:#6b7280; text-align:center;'>No posts found.</p>";
+                }
+            } catch(e) { 
+                feedContainer.innerHTML = "<p style='color:red; text-align:center;'>Error loading feed.</p>"; 
+            }
+        };
+    </script>
 </body>
 </html>
