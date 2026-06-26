@@ -2,13 +2,36 @@
 <html>
 <head>
     <style>
-        /* CSS Fix: Ensure layout occupies space */
-        .app-page { display: true; }
-        .app-page.page-active { display: block !important; }
-        .video-showcase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 20px; }
-        .video-card { background: #09090e; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 15px; color: white; }
-        .workspace { background: #000; min-height: 100vh; color: white; }
-    </style>
+        /* CSS Fix: Sahi tarika */
+.app-page { 
+    display: none; /* Element ko chupaane ke liye 'none' sahi value hai */
+}
+
+.app-page.page-active { 
+    display: block !important; /* Jab active class ho, tab dikhaye */
+}
+
+.video-showcase-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    gap: 20px; 
+    padding: 20px; 
+}
+
+.video-card { 
+    background: #09090e; 
+    border: 1px solid rgba(255,255,255,0.05); 
+    border-radius: 16px; 
+    padding: 15px; 
+    color: white; 
+}
+
+.workspace { 
+    background: #000; 
+    min-height: 100vh; 
+    color: white; 
+}
+        
 </head>
 <body>
 
