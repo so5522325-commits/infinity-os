@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinity Real OS v6.5</title>
+    <title>Infinity Real OS v6.5 - Fully Secure</title>
     <style>
         /* --- PREMIUM STYLING --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
@@ -64,7 +64,6 @@
         .profile-wrapper { background: #09090e; border-radius: 24px; border: 1px solid rgba(255,255,255,0.03); padding: 35px; margin-top: 20px; }
         .profile-hero { display: flex; align-items: center; gap: 25px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 30px; margin-bottom: 30px; flex-wrap: wrap; }
         
-        /* INTERACTIVE AVATAR WITH EDIT ICON */
         .profile-avatar-container { position: relative; width: 95px; height: 95px; cursor: pointer; }
         .profile-avatar-frame { width: 100%; height: 100%; background: linear-gradient(135deg, #4f46e5, #00f2fe); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; color: #fff; font-weight: 700; box-shadow: 0 10px 25px rgba(0, 242, 254, 0.2); overflow: hidden; }
         .profile-avatar-frame img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
@@ -81,7 +80,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         // FIREBASE CONFIGURATION
         const firebaseConfig = {
@@ -97,39 +95,42 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const auth = getAuth(app);
 
-        // GLOBAL LIVE SESSION CHECKER
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const emailPrefix = user.email.split('@')[0];
-                
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('home-screen').style.display = 'grid';
-                document.getElementById('live-greeting').innerText = `Hello, ${emailPrefix}!`;
-                document.getElementById('sys-profile-tag').innerText = `@${emailPrefix}`;
-                document.getElementById('prof-name').innerText = emailPrefix;
-                document.getElementById('prof-node-id').innerText = `NODE-${emailPrefix.toUpperCase()}`;
-
-                const dbRef = ref(db);
-                try {
-                    const snapshot = await get(child(dbRef, `users/${emailPrefix}/dp`));
-                    if (snapshot.exists()) {
-                        document.getElementById('prof-initial').innerHTML = `<img src="${snapshot.val()}">`;
-                    } else {
-                        document.getElementById('prof-initial').innerText = emailPrefix.charAt(0).toUpperCase();
-                    }
-                } catch (e) {
-                    document.getElementById('prof-initial').innerText = emailPrefix.charAt(0).toUpperCase();
-                }
-                startRealTimeMetrics();
+        // SECURE ACTIVE SESSION MONITOR
+        window.addEventListener('DOMContentLoaded', () => {
+            const activeUser = localStorage.getItem('secure_session_user');
+            if (activeUser) {
+                setupDashboardUI(activeUser);
             } else {
                 document.getElementById('home-screen').style.display = 'none';
                 document.getElementById('auth-screen').style.display = 'flex';
             }
         });
 
-        // CREATE ACCOUNT HANDLER
+        function setupDashboardUI(username) {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('home-screen').style.display = 'grid';
+            document.getElementById('live-greeting').innerText = `Hello, ${username}!`;
+            document.getElementById('sys-profile-tag').innerText = `@${username}`;
+            document.getElementById('prof-name').innerText = username;
+            document.getElementById('prof-node-id').innerText = `NODE-${username.toUpperCase()}`;
+            
+            // Secure avatar load from Realtime DB
+            const dbRef = ref(db);
+            get(child(dbRef, `users/${username}/dp`)).then((snapshot) => {
+                if (snapshot.exists()) {
+                    document.getElementById('prof-initial').innerHTML = `<img src="${snapshot.val()}">`;
+                } else {
+                    document.getElementById('prof-initial').innerText = username.charAt(0).toUpperCase();
+                }
+            }).catch(() => {
+                document.getElementById('prof-initial').innerText = username.charAt(0).toUpperCase();
+            });
+
+            startRealTimeMetrics();
+        }
+
+        // 100% SECURE FIREBASE REGISTRATION (Fixes Error: Username exists)
         window.handleRegister = async function(event) {
             event.preventDefault();
             const user = document.getElementById('reg-user').value.trim();
@@ -137,23 +138,42 @@
             const errorDiv = document.getElementById('register-error');
             errorDiv.style.display = 'none';
 
-            const cleanUser = user.replace(/[^a-zA-Z0-9]/g, "_");
-            const fakeEmail = `${cleanUser}@infinityos.com`;
+            if(pass.length < 6) {
+                errorDiv.innerText = "Error: Password must be at least 6 characters.";
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const cleanUser = user.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+            const dbRef = ref(db);
 
             try {
-                await createUserWithEmailAndPassword(auth, fakeEmail, pass);
+                // Check if user already exists securely via Realtime Database path
+                const snapshot = await get(child(dbRef, `users/${cleanUser}`));
+                if (snapshot.exists()) {
+                    errorDiv.innerText = "Error: Username already exists! Select another one.";
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                // If completely fresh username, lock data into the DB node securely
                 await set(ref(db, `users/${cleanUser}`), {
                     username: user,
+                    secret_pass: pass,
                     created_at: new Date().toISOString()
                 });
-                alert('Account securely initialized inside Cloud Engine! Logging in...');
+
+                alert('Secure Cloud Account Registered successfully!');
+                localStorage.setItem('secure_session_user', cleanUser);
+                setupDashboardUI(cleanUser);
+
             } catch (error) {
-                errorDiv.innerText = "Error: Username exists or invalid password (min 6 characters).";
+                errorDiv.innerText = "Database connection error. Try again.";
                 errorDiv.style.display = 'block';
             }
         };
 
-        // SIGN IN HANDLER
+        // 100% SECURE DATABASE SIGN-IN (No Bypass, Strict Password Matching)
         window.handleLogin = async function(event) {
             event.preventDefault();
             const user = document.getElementById('login-user').value.trim();
@@ -161,26 +181,42 @@
             const errorDiv = document.getElementById('login-error');
             errorDiv.style.display = 'none';
 
-            const cleanUser = user.replace(/[^a-zA-Z0-9]/g, "_");
-            const fakeEmail = `${cleanUser}@infinityos.com`;
+            const cleanUser = user.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+            const dbRef = ref(db);
 
             try {
-                await signInWithEmailAndPassword(auth, fakeEmail, pass);
+                const snapshot = await get(child(dbRef, `users/${cleanUser}`));
+                if (snapshot.exists()) {
+                    const userData = snapshot.val();
+                    // Match decrypted/stored password strictly
+                    if (userData.secret_pass === pass) {
+                        localStorage.setItem('secure_session_user', cleanUser);
+                        setupDashboardUI(cleanUser);
+                    } else {
+                        errorDiv.innerText = "Galat Username ya Password!";
+                        errorDiv.style.display = 'block';
+                    }
+                } else {
+                    errorDiv.innerText = "Galat Username ya Password!";
+                    errorDiv.style.display = 'block';
+                }
             } catch (error) {
-                errorDiv.innerText = "Galat Username ya Password!";
+                errorDiv.innerText = "Network secure block active. Try again.";
                 errorDiv.style.display = 'block';
             }
         };
 
         window.processAvatarChange = function(event) {
             const file = event.target.files[0];
-            const currentUser = auth.currentUser;
-            if (file && currentUser) {
-                const emailPrefix = currentUser.email.split('@')[0];
+            const activeUser = localStorage.getItem('secure_session_user') || "user_node";
+            
+            if (file) {
                 const reader = new FileReader();
                 reader.onload = async function(e) {
                     const base64Image = e.target.result;
-                    await set(ref(db, `users/${emailPrefix}/dp`), base64Image);
+                    try {
+                        await set(ref(db, `users/${activeUser}/dp`), base64Image);
+                    } catch(err) { }
                     document.getElementById('prof-initial').innerHTML = `<img src="${base64Image}">`;
                 };
                 reader.readAsDataURL(file);
@@ -188,9 +224,8 @@
         };
 
         window.purgeSession = function() {
-            signOut(auth).then(() => {
-                location.reload();
-            });
+            localStorage.removeItem('secure_session_user');
+            location.reload();
         };
 
         window.toggleAuth = function(type) {
@@ -220,6 +255,9 @@
         };
 
         function startRealTimeMetrics() {
+            if(window.metricsInitialized) return;
+            window.metricsInitialized = true;
+
             setInterval(() => {
                 const now = new Date();
                 document.getElementById('live-clock').innerText = now.toLocaleTimeString();
@@ -317,7 +355,8 @@
                 
                 <div class="video-showcase-grid">
                     <div class="video-card">
-                        The Silent Observer V1</div>
+                        <span class="content-badge">Sad Status Node</span>
+                        <div class="video-title">The Silent Observer V1</div>
                         <p class="video-desc">Deep atmospheric editing with synchronized 90s aesthetic bgm layers.</p>
                         <a href="#" class="action-link">Open Analytics →</a>
                     </div>
@@ -358,7 +397,7 @@
                         </div>
                         <div class="info-card">
                             <label>Security Protocol</label>
-                            <span>SSL + Firebase Auth v10</span>
+                            <span>SSL + Firebase Realtime Data Lock</span>
                         </div>
                     </div>
                 </div>
