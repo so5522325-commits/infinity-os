@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus OS | Version 1.1</title>
+    <title>Nexus OS | Version 1.3</title>
     <style>
         body { background-color: #050508; color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
         .page { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
         input, textarea { padding: 12px; border-radius: 8px; border: 1px solid #333; background: #111; color: white; }
         button { padding: 12px; background-color: #6200ea; color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; }
         button:hover { background: #7c4dff; }
+        button:disabled { background: #444; cursor: not-allowed; }
         .post-card { background: #1a1a1a; padding: 15px; border-radius: 10px; border-left: 4px solid #6200ea; margin-bottom: 10px; }
         .post-author { font-size: 12px; font-weight: bold; color: #b39ddb; margin-bottom: 5px; display: block; }
         .post-time { font-size: 10px; color: #888; display: block; margin-top: 5px; }
@@ -17,100 +18,98 @@
 </head>
 <body>
 
-    <!-- Login Page -->
-    <div id="login-page" class="page">
-        <h2 style="text-align: center; color: #6200ea;">Nexus OS</h2>
-        <input type="email" id="email" placeholder="Email">
-        <input type="password" id="password" placeholder="Password">
-        <button id="auth-btn" onclick="handleAuth()">Login</button>
-        <p id="auth-mode" onclick="toggleAuthMode()" style="cursor:pointer; font-size: 12px; text-align: center;">Don't have an account? Sign Up</p>
+<div id="login-page" class="page">
+    <h2 style="text-align: center; color: #6200ea;">Nexus OS</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="auth-btn" onclick="handleAuth()">Login</button>
+    <p id="auth-mode" onclick="toggleAuthMode()" style="cursor: pointer; font-size: 12px; text-align: center;">Don't have an account? Sign Up</p>
+</div>
+
+<div id="main-screen" class="page" style="display: none;">
+    <h3 style="color: #6200ea;">Nexus Dashboard</h3>
+    <textarea id="post-text" placeholder="Kya naya chal raha hai?" rows="3"></textarea>
+    <button id="post-btn" onclick="createPost()">Post Update</button>
+    <div id="feed">
+        <div id="posts-list"></div>
     </div>
+    <button onclick="logout()" style="background: #333;">Logout</button>
+</div>
 
-    <!-- Dashboard -->
-    <div id="main-screen" class="page" style="display: none;">
-        <h3 style="color: #6200ea;">Nexus Dashboard</h3>
-        <textarea id="post-text" placeholder="Kya naya chal raha hai?" rows="3"></textarea>
-        <button onclick="createPost()">Post Update</button>
-        <div id="feed">
-            <div id="posts-list"></div>
-        </div>
-        <button onclick="logout()" style="background: #e91e63; margin-top: 20px;">Logout</button>
-    </div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    const firebaseConfig = {
+        apiKey: "AizaSyC32qR8fW2aNa8ubI91CY70oOII9HUFPIQ",
+        authDomain: "infinityos-1cf63.firebaseapp.com",
+        projectId: "infinityos-1cf63",
+        storageBucket: "infinityos-1cf63.firebasestorage.app",
+        messagingSenderId: "1027693906170",
+        appId: "1:1027693906170:web:6b20c3ec3a54c9e1c0e143"
+    };
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyC32qR8fW2aNa8ubI91CY70oOII9HUFPIQ",
-            authDomain: "infinityos-1cf63.firebaseapp.com",
-            projectId: "infinityos-1cf63",
-            storageBucket: "infinityos-1cf63.firebasestorage.app",
-            messagingSenderId: "1027693906170",
-            appId: "1:1027693906170:web:6b20c3ec3a54c9e1c0e143"
-        };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    window.handleAuth = async () => {
+        const btn = document.getElementById('auth-btn');
+        btn.disabled = true; btn.innerText = "Processing...";
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('password').value;
+        const mode = document.getElementById('auth-btn').innerText;
+        try {
+            if (mode === "Login") await signInWithEmailAndPassword(auth, e, p);
+            else await createUserWithEmailAndPassword(auth, e, p);
+        } catch (err) { alert(err.message); }
+        btn.disabled = false; btn.innerText = mode;
+    };
 
-        // Auth Functions
-        window.handleAuth = () => {
-            const e = document.getElementById('email').value;
-            const p = document.getElementById('password').value;
-            const btn = document.getElementById('auth-btn').innerText;
-            if (btn === "Login") signInWithEmailAndPassword(auth, e, p).catch(err => alert(err.message));
-            else createUserWithEmailAndPassword(auth, e, p).catch(err => alert(err.message));
-        };
+    window.toggleAuthMode = () => {
+        const btn = document.getElementById('auth-btn');
+        const mode = document.getElementById('auth-mode');
+        btn.innerText = (btn.innerText === "Login") ? "Sign Up" : "Login";
+        mode.innerText = (btn.innerText === "Login") ? "Don't have an account? Sign Up" : "Already have an account? Login";
+    };
 
-        window.toggleAuthMode = () => {
-            const btn = document.getElementById('auth-btn');
-            const mode = document.getElementById('auth-mode');
-            btn.innerText = (btn.innerText === "Login") ? "Sign Up" : "Login";
-            mode.innerText = (btn.innerText === "Login") ? "Don't have an account? Sign Up" : "Already have an account? Login";
-        };
+    window.logout = () => signOut(auth);
 
-        window.logout = () => signOut(auth);
+    window.createPost = async () => {
+        const input = document.getElementById('post-text');
+        const btn = document.getElementById('post-btn');
+        if (!input.value) return;
+        btn.disabled = true; btn.innerText = "Posting...";
+        await addDoc(collection(db, "posts"), { content: input.value, author: auth.currentUser.email, timestamp: serverTimestamp() });
+        input.value = ''; btn.disabled = false; btn.innerText = "Post Update";
+    };
 
-        // Updated Post Function (With Author info)
-        window.createPost = async () => {
-            const text = document.getElementById('post-text').value;
-            const user = auth.currentUser;
-            if (text && user) {
-                await addDoc(collection(db, "posts"), { 
-                    content: text, 
-                    author: user.email, 
-                    timestamp: serverTimestamp() 
-                });
-                document.getElementById('post-text').value = '';
-            } else {
-                alert("Login zaroori hai!");
-            }
-        };
+    window.deletePost = async (id) => {
+        if (confirm("Kya aap sach mein ye post delete karna chahte hain?")) await deleteDoc(doc(db, "posts", id));
+    };
 
-        // UI State
-        onAuthStateChanged(auth, (user) => {
-            document.getElementById('login-page').style.display = user ? 'none' : 'flex';
-            document.getElementById('main-screen').style.display = user ? 'flex' : 'none';
+    onAuthStateChanged(auth, (user) => {
+        document.getElementById('login-page').style.display = user ? 'none' : 'flex';
+        document.getElementById('main-screen').style.display = user ? 'flex' : 'none';
+    });
+
+    const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+    onSnapshot(q, (snapshot) => {
+        const list = document.getElementById('posts-list');
+        if (snapshot.empty) { list.innerHTML = '<p style="color:#555; text-align:center;">Koi post nahi hai. Pehli post aap karo!</p>'; return; }
+        list.innerHTML = '';
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            list.innerHTML += `
+                <div class="post-card">
+                    <span class="post-author">${data.author || 'Anonymous'}</span>
+                    <p>${data.content}</p>
+                    <button onclick="deletePost('${doc.id}')" style="background: #ff4444; border: none; color: white; padding: 5px; border-radius: 4px; cursor: pointer;">Delete</button>
+                </div>
+            `;
         });
-
-        // Real-time Feed with Author
-        const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
-        onSnapshot(q, (snapshot) => {
-            const list = document.getElementById('posts-list');
-            list.innerHTML = '';
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleString() : 'Just now';
-                list.innerHTML += `
-                    <div class="post-card">
-                        <span class="post-author">${data.author || 'Anonymous'}</span>
-                        <p>${data.content}</p>
-                        <span class="post-time">${time}</span>
-                    </div>`;
-            });
-        });
-    </script>
+    });
+</script>
 </body>
 </html>
