@@ -3,188 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinity OS | Masterpiece</title>
-    
+    <title>Nexus OS | Version 1.1</title>
+    <style>
+        body { background-color: #050508; color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .page { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
+        input, textarea { padding: 12px; border-radius: 8px; border: 1px solid #333; background: #111; color: white; }
+        button { padding: 12px; background-color: #6200ea; color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #7c4dff; }
+        .post-card { background: #1a1a1a; padding: 15px; border-radius: 10px; border-left: 4px solid #6200ea; margin-bottom: 10px; }
+        .post-author { font-size: 12px; font-weight: bold; color: #b39ddb; margin-bottom: 5px; display: block; }
+        .post-time { font-size: 10px; color: #888; display: block; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <!-- Login Page -->
+    <div id="login-page" class="page">
+        <h2 style="text-align: center; color: #6200ea;">Nexus OS</h2>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button id="auth-btn" onclick="handleAuth()">Login</button>
+        <p id="auth-mode" onclick="toggleAuthMode()" style="cursor:pointer; font-size: 12px; text-align: center;">Don't have an account? Sign Up</p>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="main-screen" class="page" style="display: none;">
+        <h3 style="color: #6200ea;">Nexus Dashboard</h3>
+        <textarea id="post-text" placeholder="Kya naya chal raha hai?" rows="3"></textarea>
+        <button onclick="createPost()">Post Update</button>
+        <div id="feed">
+            <div id="posts-list"></div>
+        </div>
+        <button onclick="logout()" style="background: #e91e63; margin-top: 20px;">Logout</button>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC32qR8fW2aNa8ubI91CY70oOII9HUFPIQ",
             authDomain: "infinityos-1cf63.firebaseapp.com",
-            databaseURL: "https://infinityos-1cf63-default-rtdb.firebaseio.com",
             projectId: "infinityos-1cf63",
             storageBucket: "infinityos-1cf63.firebasestorage.app",
             messagingSenderId: "1027693906170",
             appId: "1:1027693906170:web:6b20c3ec3a54c9e1c0e143"
         };
+
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        let allPosts = [];
-        let allUsers = [];
-
-        onValue(ref(db, 'posts/'), (snapshot) => { allPosts = []; snapshot.forEach((child) => { allPosts.push(child.val()); }); });
-        onValue(ref(db, 'users/'), (snapshot) => { allUsers = []; snapshot.forEach((child) => { allUsers.push(child.val()); }); });
-
-        window.sendPost = () => {
-            const postText = document.getElementById('post-input').value;
-            const user = localStorage.getItem('saddam_user');
-            if(postText.trim() !== "") {
-                push(ref(db, 'posts/'), { username: user, text: postText, time: new Date().toLocaleTimeString() });
-                document.getElementById('post-input').value = "";
-            }
+        // Auth Functions
+        window.handleAuth = () => {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('password').value;
+            const btn = document.getElementById('auth-btn').innerText;
+            if (btn === "Login") signInWithEmailAndPassword(auth, e, p).catch(err => alert(err.message));
+            else createUserWithEmailAndPassword(auth, e, p).catch(err => alert(err.message));
         };
 
-        window.searchPosts = () => {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const container = document.getElementById('results-container');
-            container.innerHTML = "<h3>Posts:</h3>";
-            allPosts.filter(p => p.text.toLowerCase().includes(query)).forEach(p => {
-                container.innerHTML += `<div style="background:#1a1a1a; padding:10px; margin:5px; border-radius:8px;"><b>${p.username}</b>: ${p.text}</div>`;
-            });
+        window.toggleAuthMode = () => {
+            const btn = document.getElementById('auth-btn');
+            const mode = document.getElementById('auth-mode');
+            btn.innerText = (btn.innerText === "Login") ? "Sign Up" : "Login";
+            mode.innerText = (btn.innerText === "Login") ? "Don't have an account? Sign Up" : "Already have an account? Login";
         };
 
-        window.searchUsers = () => {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const container = document.getElementById('results-container');
-            container.innerHTML = "<h3>Users:</h3>";
-            allUsers.filter(u => u.username.toLowerCase().includes(query)).forEach(u => {
-                container.innerHTML += `<div onclick="viewProfile('${u.username}')" style="background:#2d3436; padding:10px; margin:5px; border-radius:8px; cursor:pointer;">User: ${u.username}</div>`;
-            });
-        };
+        window.logout = () => signOut(auth);
 
-        window.viewProfile = (username) => {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('profile-page').classList.add('active');
-            document.getElementById('profile-title').innerText = "Profile: " + username;
-            const btn = document.getElementById('profile-follow-btn');
-            btn.innerText = JSON.parse(localStorage.getItem('my_following') || '[]').includes(username) ? "Following" : "Follow";
-        };
-
-        window.toggleProfileFollow = () => {
-            let following = JSON.parse(localStorage.getItem('my_following') || '[]');
-            const username = document.getElementById('profile-title').innerText.replace("Profile: ", "");
-            const btn = document.getElementById('profile-follow-btn');
-            if (following.includes(username)) {
-                following = following.filter(u => u !== username);
-                btn.innerText = "Follow";
+        // Updated Post Function (With Author info)
+        window.createPost = async () => {
+            const text = document.getElementById('post-text').value;
+            const user = auth.currentUser;
+            if (text && user) {
+                await addDoc(collection(db, "posts"), { 
+                    content: text, 
+                    author: user.email, 
+                    timestamp: serverTimestamp() 
+                });
+                document.getElementById('post-text').value = '';
             } else {
-                following.push(username);
-                btn.innerText = "Following";
-            }
-            localStorage.setItem('my_following', JSON.stringify(following));
-            updateCounts();
-        };
-
-        window.updateDP = () => {
-            const url = document.getElementById('dp-url-input').value;
-            if(url.trim() !== "") {
-                localStorage.setItem('my_dp', url);
-                document.getElementById('user-dp').src = url;
+                alert("Login zaroori hai!");
             }
         };
 
-        window.updateCounts = () => {
-            const following = JSON.parse(localStorage.getItem('my_following') || '[]');
-            document.getElementById('following-count').innerText = following.length;
-            document.getElementById('followers-count').innerText = "0"; 
-        };
+        // UI State
+        onAuthStateChanged(auth, (user) => {
+            document.getElementById('login-page').style.display = user ? 'none' : 'flex';
+            document.getElementById('main-screen').style.display = user ? 'flex' : 'none';
+        });
 
-        window.login = function() {
-            const user = document.getElementById('username').value;
-            if(user.trim() !== "") {
-                localStorage.setItem('saddam_user', user);
-                location.reload();
-            }
-        };
-    </script>
-
-    <style>
-        body { margin: 0; background: #050508; color: #fff; font-family: sans-serif; overflow: hidden; }
-        .page { display: none; height: calc(100vh - 130px); padding-top: 60px; overflow-y: auto; }
-        .active { display: block !important; }
-        #top-header { position: fixed; top: 0; width: 100%; height: 50px; background: #09090e; display: none; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 2000; }
-        .navbar { position: fixed; bottom: 0; width: 100%; height: 70px; background: #09090e; display: none; justify-content: space-around; align-items: center; border-top: 1px solid #333; z-index: 1000; }
-        .nav-btn { background: none; border: none; color: #6b7280; font-weight: 600; cursor: pointer; }
-        .nav-btn.active-nav { color: #00f2fe; }
-        .reel-container { height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-    </style>
-</head>
-<body>
-    <div id="top-header"><span style="font-weight:bold; color:#00f2fe;">INFINITY OS</span></div>
-
-    <div id="login-page" class="page" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;">
-        <input type="text" id="username" placeholder="Username" style="padding:15px; border-radius:10px; width:250px; margin-bottom:10px; border:none;">
-        <button onclick="login()" style="padding:15px 40px; background:#4f46e5; border:none; color:white; border-radius:10px;">LOGIN</button>
-    </div>
-
-    <div id="feed-page" class="page" style="text-align:center;">
-        <input type="text" id="search-input" placeholder="Search..." style="width:80%; padding:10px; margin-bottom:10px; border-radius:5px; border:none;">
-        <br>
-        <button onclick="searchPosts()" style="padding:10px; background:#00f2fe; border:none; border-radius:5px;">Search Posts</button>
-        <button onclick="searchUsers()" style="padding:10px; background:#55efc4; border:none; border-radius:5px;">Search Users</button>
-        <hr>
-        <input type="text" id="post-input" placeholder="What's on your mind?" style="width:60%; padding:10px; border-radius:5px; border:none;">
-        <button onclick="sendPost()" style="padding:10px; background:#74b9ff; border:none; border-radius:5px;">Post</button>
-        <div id="results-container" style="margin-top:20px;"></div>
-    </div>
-
-    <div id="reel-page" class="page"><div class="reel-container" id="reelBox"></div></div>
-
-    <div id="game-page" class="page" style="text-align:center;"><h3>Battle Arena</h3></div>
-
-    <div id="profile-page" class="page" style="text-align:center; padding: 20px;">
-        <div style="margin-bottom: 20px;">
-            <img id="user-dp" src="https://via.placeholder.com/100" style="width:120px; height:120px; border-radius:50%; border:3px solid #00f2fe; object-fit: cover;">
-            <h3 id="profile-title" style="margin: 10px 0 5px 0;">Profile</h3>
-            <p id="user-display" style="color: #6b7280; font-size: 14px;"></p>
-        </div>
-        <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 20px;">
-            <div style="text-align: center;">
-                <div id="followers-count" style="font-size: 18px; font-weight: bold;">0</div>
-                <div style="font-size: 12px; color: #6b7280;">Followers</div>
-            </div>
-            <div style="text-align: center;">
-                <div id="following-count" style="font-size: 18px; font-weight: bold;">0</div>
-                <div style="font-size: 12px; color: #6b7280;">Following</div>
-            </div>
-        </div>
-        <button id="profile-follow-btn" onclick="toggleProfileFollow()" style="padding:10px 40px; background:#00f2fe; color:black; border:none; border-radius:25px; font-weight:bold; margin-bottom: 15px;">Follow</button>
-        <div style="background:#09090e; padding:15px; border-radius:15px; margin: 10px auto; width: 80%;">
-            <input type="text" id="dp-url-input" placeholder="Image URL" style="width: 70%; padding: 8px; border-radius: 8px; border: none; background: #1a1a1a; color: white;">
-            <button onclick="updateDP()" style="padding:8px 10px; background:#55efc4; border-radius: 8px;">Set</button>
-        </div>
-        <button onclick="localStorage.clear(); location.reload();" style="margin-top:20px; padding:8px 20px; background:transparent; border:1px solid #ff4757; color:#ff4757; border-radius:10px;">Logout</button>
-    </div>
-
-    <div class="navbar" id="nav-bar">
-        <button class="nav-btn" onclick="navigate('feed-page', this)">Feed</button>
-        <button class="nav-btn" onclick="navigate('reel-page', this)">Reels</button>
-        <button class="nav-btn" onclick="navigate('game-page', this)">Game</button>
-        <button class="nav-btn" onclick="navigate('profile-page', this)">Profile</button>
-    </div>
-
-    <script>
-        window.onload = () => {
-            if (localStorage.getItem('saddam_user')) {
-                document.getElementById('login-page').style.display = 'none';
-                document.getElementById('nav-bar').style.display = 'flex';
-                document.getElementById('top-header').style.display = 'flex';
-                document.getElementById('user-dp').src = localStorage.getItem('my_dp') || "https://via.placeholder.com/100";
-                document.getElementById('user-display').innerText = "User: " + localStorage.getItem('saddam_user');
-                updateCounts();
-            } else {
-                document.getElementById('login-page').style.display = 'flex';
-            }
-        };
-        function navigate(id, btn) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active-nav'));
-            if(btn) btn.classList.add('active-nav');
-        }
+        // Real-time Feed with Author
+        const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const list = document.getElementById('posts-list');
+            list.innerHTML = '';
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleString() : 'Just now';
+                list.innerHTML += `
+                    <div class="post-card">
+                        <span class="post-author">${data.author || 'Anonymous'}</span>
+                        <p>${data.content}</p>
+                        <span class="post-time">${time}</span>
+                    </div>`;
+            });
+        });
     </script>
 </body>
 </html>
